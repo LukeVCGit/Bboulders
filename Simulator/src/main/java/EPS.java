@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -14,8 +15,8 @@ public class EPS {
 
     // derived constants
     protected static final Random rng = new Random();
-    protected static final double d_eps = 0.5 * d_0;
-    protected static final double r_eps = 0.5 * d_eps;
+    public static final double d_eps = 0.5 * d_0;
+    public static final double L_MAX = l_c + d_0;
 
     protected Vector position;
 
@@ -33,10 +34,12 @@ public class EPS {
         return d_eps;
     }
 
-    protected Vector F_rf(List<EPS> potentialColliders) { //todo implement
+    protected Vector F_rf(List<EPS> potentialColliders) {
         Vector sum = Vector.ORIGIN;
 
         for (EPS col : potentialColliders) {
+            assert this.getClass() != Cell.class; // makes sure we don't try to simulate a cell yet
+
             if (col.getClass() != Cell.class)
                 sum = sum.add(resolveEPSCollision(col));
             else
@@ -47,7 +50,16 @@ public class EPS {
     }
 
     private Vector resolveEPSCollision(EPS col) {
-        return Vector.ORIGIN;
+        Vector disp = position.subtract(col.position);
+        double dist = disp.mag();
+
+        if (dist > L()) //if the two eps particles are not close enough
+            return Vector.ORIGIN;
+
+        double h = d_eps - dist; //overlap between the two eps
+        double forceMag = E * Math.sqrt(d_eps * h*h*h);
+
+        return disp.unitize().scale(forceMag);
     }
 
     private Vector resolveEPSCellCollision(Cell col) {
@@ -63,5 +75,15 @@ public class EPS {
                 .add(epsilon())
                 .add(F_rf(potentialColliders))
                 .scale(1/(nu*L()));
+    }
+
+    public List<EPS> tick(double dt, List<EPS> potentialColliders) {
+        //update EPS position using forward euler
+        Vector newPos = vel(potentialColliders).scale(dt).add(position);
+        EPS copy = new EPS(newPos);
+
+        List<EPS> output = new ArrayList<>();
+        output.add(copy);
+        return output;
     }
 }

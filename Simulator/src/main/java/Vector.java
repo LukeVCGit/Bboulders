@@ -1,6 +1,6 @@
 public class Vector {
-    public double x;
-    public double y;
+    public final double x;
+    public final double y;
 
     public static final Vector ORIGIN = new Vector(0, 0);
 
