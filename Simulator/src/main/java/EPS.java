@@ -17,11 +17,14 @@ public class EPS {
     protected static final Random rng = new Random();
     public static final double d_eps = 0.5 * d_0;
     public static final double L_MAX = l_c + d_0;
+    protected static final double r_0 = d_0 * 0.5;
+    protected static final double l_ini = 0.5 * l_c;
+    protected static final double Abar = r_0 * (Math.PI * r_0 + 1.5 * l_c);
 
-    protected Vector position;
+    protected final Vector position;
 
     public EPS(Vector position) {
-        this.position = position;
+        this.position = position; //todo clamp position to be within boundary
     }
 
     private Vector epsilon() {
@@ -34,22 +37,20 @@ public class EPS {
         return d_eps;
     }
 
-    protected Vector F_rf(List<EPS> potentialColliders) {
+    private Vector F_rf(List<EPS> potentialColliders) {
         Vector sum = Vector.ORIGIN;
 
         for (EPS col : potentialColliders) {
-            assert this.getClass() != Cell.class; // makes sure we don't try to simulate a cell yet
-
             if (col.getClass() != Cell.class)
                 sum = sum.add(resolveEPSCollision(col));
             else
-                sum = sum.add(resolveEPSCellCollision((Cell)col));
+                sum = sum.add(resolveCellCollision((Cell)col));
         }
 
         return sum;
     }
 
-    private Vector resolveEPSCollision(EPS col) {
+    protected Vector resolveEPSCollision(EPS col) {
         Vector disp = position.subtract(col.position);
         double dist = disp.mag();
 
@@ -57,12 +58,12 @@ public class EPS {
             return Vector.ORIGIN;
 
         double h = d_eps - dist; //overlap between the two eps
-        double forceMag = E * Math.sqrt(d_eps * h*h*h);
+        double forceMag = E * Math.sqrt(d_eps * h * h * h);
 
         return disp.unitize().scale(forceMag);
     }
 
-    private Vector resolveEPSCellCollision(Cell col) {
+    protected Vector resolveCellCollision(Cell col) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
@@ -70,7 +71,7 @@ public class EPS {
         return Vector.ORIGIN;
     }
 
-    protected Vector vel(List<EPS> potentialColliders) {
+    protected final Vector vel(List<EPS> potentialColliders) {
         return F_mf()
                 .add(epsilon())
                 .add(F_rf(potentialColliders))

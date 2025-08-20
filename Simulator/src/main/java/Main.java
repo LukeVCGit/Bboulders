@@ -14,13 +14,16 @@ public class Main {
         System.out.println("Cleared data directory");
 
         var eps = new ArrayList<EPS>();
-        for (int i = 0; i < 10; i++)
-            eps.add(new EPS(Vector.ORIGIN));
+//        for (int i = 0; i < 10; i++)
+//            eps.add(new EPS(Vector.ORIGIN));
 
-        TimeStep step = new TimeStep(eps,new ArrayList<>());
+        var cells = new ArrayList<Cell>();
+        cells.add(new Cell(Vector.ORIGIN, 0, EPS.l_ini));
+
+        TimeStep step = new TimeStep(eps, cells);
         System.out.println("Set up initial condition");
 
-        for (int i = 0; i < 60; i++) {
+        for (int i = 0; i < 300; i++) {
             step.save(dir, i);
             step = step.next(dt);
         }

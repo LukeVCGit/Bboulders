@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import com.google.gson.Gson;
 
@@ -25,7 +26,9 @@ public class TimeStep {
 
         List<Cell> newBacteria = new ArrayList<>();
         for (Cell cell : bacteria) {
-            throw new UnsupportedOperationException("Not supported yet.");
+            var colliders = potentialColliders(cell);
+            var newBact = (List<Cell>) (List<?>) cell.tick(dt, colliders);
+            newBacteria.addAll(newBact);
         }
 
         return new TimeStep(newEps, newBacteria);
@@ -55,7 +58,7 @@ public class TimeStep {
         return potentialColliders;
     }
 
-    public void save(Path dir, int i) {
+    public void save(Path dir, int i) { //todo create async method
         String data = gson.toJson(this);
         Path destFile = dir.resolve(String.format("%05d.json", i));
 
