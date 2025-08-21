@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import glob
@@ -66,6 +67,18 @@ def make_frame(bacteria, eps, frame):
 
 
 def main():
+    #parse command line arguments
+    parser = argparse.ArgumentParser(description="Biofilm simulation video generator")
+    parser.add_argument("data_dir", help="Directory containing simulation JSON files")
+    parser.add_argument("frame_dir", help="Directory to save frames")
+    parser.add_argument("--output", default="video.mp4", help="Output video filename (default: video.mp4)")
+    args = parser.parse_args()
+
+    data_dir = args.data_dir
+    frame_dir = args.frame_dir
+    output_file = args.output
+
+
     # clear frame directory
     if os.path.exists(FRAME_DIRECTORY):
         shutil.rmtree(FRAME_DIRECTORY)  # delete entire folder
