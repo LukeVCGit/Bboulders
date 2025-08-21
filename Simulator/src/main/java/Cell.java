@@ -64,6 +64,7 @@ public class Cell extends EPS {
 
     @Override
     protected Vector resolveCellCollision(Cell col) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        //throw new UnsupportedOperationException("Not supported yet.");
+        return Vector.ORIGIN;
     }
 }

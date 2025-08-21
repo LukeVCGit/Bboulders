@@ -5,8 +5,14 @@ import java.util.Objects;
 
 public class Main {
     public static void main(String[] args) {
+        //G:\My Drive\Temp\Bogus Boulders Capstone\Visualisation\simulation_data
+        if (args.length != 1) {
+            System.out.println("One argument is required: existing destination directory for timesteps of the simulation");
+            return;
+        }
+
         System.out.println("Running");
-        var dir = Paths.get("G:\\My Drive\\Temp\\Bogus Boulders Capstone\\Visualisation\\simulation_data");
+        var dir = Paths.get(args[0]);
         double dt = 1.0/30;
 
         for (File f : Objects.requireNonNull(dir.toFile().listFiles()))
