@@ -63,7 +63,7 @@ public class EPS {
         return disp.unitize().scale(forceMag);
     }
 
-    protected Vector resolveCellCollision(Cell col) {
+    protected Vector resolveCellCollision(Cell col) { //todo
         throw new UnsupportedOperationException("Not supported yet.");
     }
 

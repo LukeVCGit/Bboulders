@@ -17,12 +17,14 @@ public class TimeStep {
         this.bacteria = bacteria;
     }
 
-    public TimeStep next(double dt) {
+    public TimeStep next(double dt) { //todo parallelise
         List<EPS> newEps = new ArrayList<>();
         for (EPS ep : eps) {
             var colliders = potentialColliders(ep);
             newEps.addAll(ep.tick(dt, colliders));
         }
+
+        //todo EPS production
 
         List<Cell> newBacteria = new ArrayList<>();
         for (Cell cell : bacteria) {

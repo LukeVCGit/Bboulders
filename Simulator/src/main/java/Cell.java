@@ -1,6 +1,9 @@
 import java.util.ArrayList;
 import java.util.List;
 
+//todo unit testing for everything
+//todo improve names
+
 public class Cell extends EPS {
     private final double angle;
     private final double length;
@@ -58,12 +61,12 @@ public class Cell extends EPS {
     }
 
     @Override
-    protected Vector resolveEPSCollision(EPS col) {
+    protected Vector resolveEPSCollision(EPS col) { //todo
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    protected Vector resolveCellCollision(Cell col) {
+    protected Vector resolveCellCollision(Cell col) { //todo
         //throw new UnsupportedOperationException("Not supported yet.");
         return Vector.ORIGIN;
     }
