@@ -68,6 +68,34 @@ public class Cell extends EPS {
     @Override
     protected Vector resolveCellCollision(Cell col) { //todo
         //throw new UnsupportedOperationException("Not supported yet.");
-        return Vector.ORIGIN;
+
+        double dx = position.x - col.position.x;
+        double dy = position.y - col.position.y;
+        double ux = Math.cos(angle);
+        double uy = Math.sin(angle);
+        double vx = Math.cos(col.angle);
+        double vy = Math.sin(col.angle);
+
+        double scale = -1/(ux*vy-uy*vx);
+        double t = scale * (dx*vy - dy*vx); //current cell is t
+        double s = scale * (dx*vy - dy*ux); //other cell is s
+
+        System.out.println("t=" + t + ", length=" + length);
+        System.out.println("s=" + s + ", length=" + col.length);
+
+        // temp
+        t = Math.clamp(t, -length*0.5, length*0.5);
+        s = Math.clamp(s, -col.length*0.5, col.length*0.5);
+
+        Vector disp = position.subtract(col.position);
+        double dist = disp.mag();
+
+        if (dist > d_0) //ignore collision if too far apart
+            return Vector.ORIGIN;
+
+        double h = d_0 - dist; //overlap between the two cells
+        double forceMag = E * Math.sqrt(d_0 * h * h * h);
+
+        return disp.unitize().scale(forceMag);
     }
 }

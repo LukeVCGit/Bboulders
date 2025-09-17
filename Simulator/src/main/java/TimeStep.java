@@ -61,7 +61,7 @@ public class TimeStep {
     }
 
     public void save(Path dir, int i) { //todo create async method
-        String data = gson.toJson(this);
+        String data = gson.toJson(this); //todo messagepack
         Path destFile = dir.resolve(String.format("%05d.json", i));
 
         try { //java bloat

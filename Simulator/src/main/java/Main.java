@@ -3,8 +3,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Objects;
 
-//todo messagepack
-
 public class Main {
     public static void main(String[] args) {
         //G:\My Drive\Temp\Bogus Boulders Capstone\Visualisation\simulation_data
@@ -31,7 +29,7 @@ public class Main {
         TimeStep step = new TimeStep(eps, cells);
         System.out.println("Set up initial condition");
 
-        for (int i = 0; i < 300; i++) {
+        for (int i = 0; i < 60; i++) {
             step.save(dir, i);
             step = step.next(dt);
         }
