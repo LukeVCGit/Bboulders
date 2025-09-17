@@ -60,7 +60,7 @@ public class TimeStep {
         return potentialColliders;
     }
 
-    public void save(Path dir, int i) { //todo create async method
+    public void save(Path dir, int i) {
         String data = gson.toJson(this); //todo messagepack
         Path destFile = dir.resolve(String.format("%05d.json", i));
 
@@ -69,5 +69,9 @@ public class TimeStep {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void saveAsync(Path dir, int i) { //todo improve to use thread pool
+        new Thread(() -> save(dir,i)).start();
     }
 }

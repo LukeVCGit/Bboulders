@@ -80,14 +80,15 @@ public class Cell extends EPS {
         double t = scale * (dx*vy - dy*vx); //current cell is t
         double s = scale * (dx*vy - dy*ux); //other cell is s
 
-        System.out.println("t=" + t + ", length=" + length);
-        System.out.println("s=" + s + ", length=" + col.length);
-
         // temp
         t = Math.clamp(t, -length*0.5, length*0.5);
         s = Math.clamp(s, -col.length*0.5, col.length*0.5);
 
-        Vector disp = position.subtract(col.position);
+        //closest point on each cell
+        Vector p1 = Vector.fromMag(t, angle).add(position);
+        Vector p2 = Vector.fromMag(s, col.angle).add(col.position);
+        
+        Vector disp = p1.subtract(p2);
         double dist = disp.mag();
 
         if (dist > d_0) //ignore collision if too far apart

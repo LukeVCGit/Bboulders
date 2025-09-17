@@ -29,8 +29,8 @@ public class Main {
         TimeStep step = new TimeStep(eps, cells);
         System.out.println("Set up initial condition");
 
-        for (int i = 0; i < 60; i++) {
-            step.save(dir, i);
+        for (int i = 0; i < 150; i++) {
+            step.saveAsync(dir, i);
             step = step.next(dt);
         }
         System.out.println("Completed timestepping");
