@@ -29,10 +29,13 @@ public class Main {
         TimeStep step = new TimeStep(eps, cells);
         System.out.println("Set up initial condition");
 
-        for (int i = 0; i < 150; i++) {
-            step.saveAsync(dir, i);
+        for (int i = 0; i < 5*30; i++) {
+            step.startSaveAsync(dir, i);
             step = step.next(dt);
         }
-        System.out.println("Completed timestepping");
+        System.out.println("Completed timestepping, saving data");
+
+        TimeStep.saveFrames();
+        System.out.println("Data saved");
     }
 }

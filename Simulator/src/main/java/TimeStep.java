@@ -2,12 +2,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+
 import com.google.gson.Gson;
 
 public class TimeStep {
     private static final Gson gson = new Gson();
+    private static final ForkJoinPool pool =  new ForkJoinPool();
+    private static final List<ForkJoinTask<?>> fileSaveTasks = new ArrayList<>();
 
     private List<EPS> eps;
     private List<Cell> bacteria;
@@ -60,7 +64,7 @@ public class TimeStep {
         return potentialColliders;
     }
 
-    public void save(Path dir, int i) {
+    private void save(Path dir, int i) {
         String data = gson.toJson(this); //todo messagepack
         Path destFile = dir.resolve(String.format("%05d.json", i));
 
@@ -71,7 +75,13 @@ public class TimeStep {
         }
     }
 
-    public void saveAsync(Path dir, int i) { //todo improve to use thread pool
-        new Thread(() -> save(dir,i)).start();
+    public void startSaveAsync(Path dir, int i) {
+        var task = pool.submit(() -> save(dir,i));
+        fileSaveTasks.add(task);
+    }
+
+    public static void saveFrames() {
+        for (var task : fileSaveTasks)
+            task.join();
     }
 }
