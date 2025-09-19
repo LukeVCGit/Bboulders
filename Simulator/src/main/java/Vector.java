@@ -38,6 +38,16 @@ public class Vector {
         return new Vector(x / size, y / size);
     }
 
+    public static double closestTtoPoint(Vector p, Vector d, Vector point) {
+        Vector w = point.subtract(p);
+        double denom = d.dot(d);
+        
+        if (denom < 1e-12) //direction is degenerate
+            return 0;
+        
+        return d.dot(w) / denom;
+    }
+
     public double dot(Vector v) {
         return x * v.x + y * v.y;
     }

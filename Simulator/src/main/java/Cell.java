@@ -78,17 +78,21 @@ public class Cell extends EPS {
         double e = w.dot(d2);
 
         double det = a*c-b*b;
-        double t = (b*e-c*d)/det;
-        double s = (a*e-b*d)/det;
+        double t = 0;
+        double s = 0;
 
-//        if (Math.abs(det) < 1e-6) { //if lines are almost parallel
-//            t = 0;
-//            s = 0;
-//        }
+        if (Math.abs(det) > 1e-6) { //if lines are not almost parallel
+            t = (b*e-c*d)/det;
+            s = (a*e-b*d)/det;
+        }
+
+        //bounds of t and s
+        double tb = length*0.5;
+        double sb = col.length*0.5;
 
         // temp
-        t = Math.clamp(t, -length*0.5, length*0.5);
-        s = Math.clamp(s, -col.length*0.5, col.length*0.5);
+        t = Math.clamp(t, -tb, tb);
+        s = Math.clamp(s, -sb, sb);
 
         //closest point on each cell
         Vector tPos = Vector.fromMag(t, angle).add(position);
