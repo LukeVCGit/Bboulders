@@ -38,6 +38,10 @@ public class Vector {
         return new Vector(x / size, y / size);
     }
 
+    public double dot(Vector v) {
+        return x * v.x + y * v.y;
+    }
+
     @Override
     public String toString() {
         return "Vector{" +

@@ -67,28 +67,34 @@ public class Cell extends EPS {
 
     @Override
     protected Vector resolveCellCollision(Cell col) { //todo
-        //throw new UnsupportedOperationException("Not supported yet.");
+        Vector d1 = Vector.fromMag(1, angle);
+        Vector d2 = Vector.fromMag(1, col.angle);
 
-        double dx = position.x - col.position.x;
-        double dy = position.y - col.position.y;
-        double ux = Math.cos(angle);
-        double uy = Math.sin(angle);
-        double vx = Math.cos(col.angle);
-        double vy = Math.sin(col.angle);
+        double a = d1.dot(d1);
+        double b = d1.dot(d2);
+        double c = d2.dot(d2);
+        Vector w = position.subtract(col.position);
+        double d = w.dot(d1);
+        double e = w.dot(d2);
 
-        double scale = -1/(ux*vy-uy*vx);
-        double t = scale * (dx*vy - dy*vx); //current cell is t
-        double s = scale * (dx*vy - dy*ux); //other cell is s
+        double det = a*c-b*b;
+        double t = (b*e-c*d)/det;
+        double s = (a*e-b*d)/det;
+
+//        if (Math.abs(det) < 1e-6) { //if lines are almost parallel
+//            t = 0;
+//            s = 0;
+//        }
 
         // temp
         t = Math.clamp(t, -length*0.5, length*0.5);
         s = Math.clamp(s, -col.length*0.5, col.length*0.5);
 
         //closest point on each cell
-        Vector p1 = Vector.fromMag(t, angle).add(position);
-        Vector p2 = Vector.fromMag(s, col.angle).add(col.position);
+        Vector tPos = Vector.fromMag(t, angle).add(position);
+        Vector sPos = Vector.fromMag(s, col.angle).add(col.position);
         
-        Vector disp = p1.subtract(p2);
+        Vector disp = tPos.subtract(sPos);
         double dist = disp.mag();
 
         if (dist > d_0) //ignore collision if too far apart
@@ -96,6 +102,9 @@ public class Cell extends EPS {
 
         double h = d_0 - dist; //overlap between the two cells
         double forceMag = E * Math.sqrt(d_0 * h * h * h);
+
+        if (dist == 0.0) //special case for disp if dist == 0 to prevent NaN error
+            disp = w;
 
         return disp.unitize().scale(forceMag);
     }
