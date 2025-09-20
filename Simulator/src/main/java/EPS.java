@@ -64,7 +64,27 @@ public class EPS {
     }
 
     protected Vector resolveCellCollision(Cell col) { //todo
-        throw new UnsupportedOperationException("Not supported yet.");
+        Vector cellDir = Vector.fromMag(1, col.angle);
+
+        //find the closest point on the cell's main axis to the eps
+        double t = Vector.closestTtoPoint(col.position, cellDir, position);
+        double tb = col.length*0.5; //bound of t
+        t = Math.clamp(t, -tb, tb);
+
+        Vector closestPoint = Vector.fromMag(t, col.angle).add(col.position);
+
+        Vector disp = position.subtract(closestPoint);
+        double dist = disp.mag();
+
+        double overlapThreshold = 0.5*(d_0 + d_eps);
+
+        if (dist > overlapThreshold) //if the cell and eps particle are not close enough
+            return Vector.ORIGIN;
+
+        double h = overlapThreshold - dist;
+        double forceMag = E * Math.sqrt(d_eps * h * h * h);
+
+        return disp.unitize().scale(forceMag);
     }
 
     protected Vector F_mf() { //no motility force

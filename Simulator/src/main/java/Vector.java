@@ -44,4 +44,8 @@ public record Vector(double x, double y) {
     public double dot(Vector v) {
         return x * v.x + y * v.y;
     }
+
+    public double cross(Vector v) {
+        return x * v.y - y * v.x;
+    }
 }

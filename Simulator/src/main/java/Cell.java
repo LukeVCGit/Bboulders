@@ -5,8 +5,10 @@ import java.util.List;
 //todo improve names
 
 public class Cell extends EPS {
-    private final double angle;
-    private final double length;
+    final double angle;
+    final double length;
+
+    private transient double torque = 0;
 
     public Cell(Vector position, double angle, double length) {
         super(position);
@@ -19,7 +21,7 @@ public class Cell extends EPS {
         //update the quantities using forward euler
         double newLength = length + dlength_dt()*dt;
         Vector newPos = vel(potentialColliders).scale(dt).add(position);
-        double newAngle = angle; //todo add angular velocity
+        double newAngle = angle + angularVelocity()*dt;
 
         List<EPS> cells = new ArrayList<EPS>();
 
@@ -56,13 +58,45 @@ public class Cell extends EPS {
         return phi * area() * f(temp_C) / Abar;
     }
 
+    private double angularVelocity() {
+        return torque*12/(nu * Math.pow(L(), 3));
+    }
+
     public static double f(double C) {
         return C / (1+C);
     }
 
     @Override
-    protected Vector resolveEPSCollision(EPS col) { //todo
-        throw new UnsupportedOperationException("Not supported yet.");
+    protected Vector resolveEPSCollision(EPS col) {
+        Vector cellDir = Vector.fromMag(1, angle);
+
+        //find the closest point on the cell's main axis to the eps
+        double t = Vector.closestTtoPoint(position, cellDir, col.position);
+        double tb = length*0.5; //bound t
+        t = Math.clamp(t, -tb, tb);
+
+        Vector closestPoint = Vector.fromMag(t, angle).add(position);
+
+        Vector disp = closestPoint.subtract(col.position);
+        double dist = disp.mag();
+
+        double overlapThreshold = 0.5*(d_0 + d_eps);
+
+        if (dist > overlapThreshold) //if not close enough
+            return Vector.ORIGIN;
+
+        double h = overlapThreshold - dist;
+        double forceMag = E*Math.sqrt(d_0 * h * h * h);
+        Vector force = disp.unitize().scale(forceMag);
+
+        //compute the component of the force in the direction of the cell's axis
+        Vector forceAlongAxis = cellDir.scale(force.dot(cellDir));
+
+        //todo check correct
+        //calculate torque on cell
+        torque += closestPoint.cross(force);
+
+        return forceAlongAxis;
     }
 
     @Override
