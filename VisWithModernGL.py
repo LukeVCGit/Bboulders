@@ -7,22 +7,18 @@ import imageio.v2 as imageio
 import moderngl
 from PIL import Image
 
-# --- CONFIGURATION ---
 DATA_DIRECTORY = 'simulation_data'
-FRAME_DIRECTORY = 'frames' # Not used by this script, but for consistency
 OUTPUT_VIDEO = 'video_gpu.mp4'
 FPS = 30
 FRAME_SIZE = (1024, 1024)
-BACTERIA_WIDTH = 1.0 # Use float for consistency
+BACTERIA_WIDTH = 1.0 
 
-# --- SHADERS (RUN ON GPU) ---
-
-# The Vertex Shader positions each corner of our base shape.
-# It runs once for each corner of each instance (bacterium/EPS).
+# Vertex Shader positions each corner of base shape
+# Now we pass shape type to fragment shader for proper rendering
 VERTEX_SHADER = """
     #version 330
 
-    // This is the input for a single corner of the base 1x1 rectangle.
+    // This is the input for a single corner of the base rectangle.
     in vec2 in_vert; 
 
     // These are the per-instance inputs, unique for each bacterium/EPS.
@@ -30,47 +26,110 @@ VERTEX_SHADER = """
     in vec2 in_size;     // length and width of the object in [-1, 1] space
     in float in_angle;   // angle in radians
     in vec3 in_color;    // color (R, G, B)
+    in float in_shape;   // shape type: 0 = capsule (bacteria), 1 = circle (EPS)
 
-    // This is an output that gets passed to the Fragment Shader.
+    // Outputs that get passed to the Fragment Shader.
     out vec3 v_color;
+    out vec2 v_uv;       // UV coordinates for shape rendering
+    out vec2 v_size;     // Pass size to fragment shader
+    out float v_shape;   // Pass shape type to fragment shader
 
     void main() {
-        // Pass the color along to the next stage.
+        // Pass data to fragment shader
         v_color = in_color;
+        v_size = in_size;
+        v_shape = in_shape;
+        
+        // Calculate UV coordinates (-1 to 1 range for shape calculations)
+        v_uv = in_vert;
 
-        // Create a 2x2 rotation matrix to apply the angle.
+        // Create rotation matrix
         mat2 rotation = mat2(
             cos(in_angle), -sin(in_angle),
             sin(in_angle), cos(in_angle)
         );
 
-        // Calculate the final position of the vertex:
-        // 1. Start with the base corner (in_vert)
-        // 2. Scale it by the object's size (in_size)
-        // 3. Rotate it using the rotation matrix
-        // 4. Translate it to the object's final position (in_pos)
-        vec2 pos = (in_vert * in_size) * rotation + in_pos;
+        // Calculate the final position of the vertex
+        // We need to expand the bounding box slightly for rounded ends
+        float expand = (in_shape < 0.5) ? 1.2 : 1.1; // Expand more for capsules
+        vec2 pos = (in_vert * in_size * expand) * rotation + in_pos;
 
-        // gl_Position is a special output variable for the final vertex coordinates.
         gl_Position = vec4(pos, 0.0, 1.0);
     }
 """
 
-# The Fragment Shader determines the color of each pixel.
-# It runs for every single pixel inside the shapes drawn by the Vertex Shader.
+# Fragment Shader with signed distance functions for capsule and circle shapes
 FRAGMENT_SHADER = """
     #version 330
 
-    // This is the color that was passed from the Vertex Shader.
-    // The GPU automatically interpolates it across the shape's surface.
     in vec3 v_color;
+    in vec2 v_uv;
+    in vec2 v_size;
+    in float v_shape;
 
-    // This is the final output color for the current pixel.
     out vec4 f_color;
 
     void main() {
-        // Set the pixel color, with full alpha (1.0 = fully opaque).
-        f_color = vec4(v_color, 1.0);
+        float alpha;
+
+        if (v_shape < 0.5) {
+            // Bacteria -> Capsule Shape using a Signed Distance Function (SDF)
+
+            // 1. Get the aspect ratio from the bacterium's actual size.
+            float aspect = v_size.x / v_size.y;
+            
+            // 2. Define the capsule's geometry in the local UV space.
+            // The radius is half the height of the base quad.
+            float radius = 0.5;
+            
+            // The central line segment's half-length depends on the aspect ratio.
+            // max(0.0, ...) ensures this works even if the shape is wider than it is long (a circle).
+            float line_half_length = max(0.0, (aspect - 1.0) / 2.0);
+            vec2 segment_start = vec2(-line_half_length, 0.0);
+            vec2 segment_end   = vec2( line_half_length, 0.0);
+            
+            // 3. Transform the square UV coordinates into a space with the correct aspect ratio.
+            // This "stretches" our calculation space to match the bacterium's shape.
+            vec2 p = vec2(v_uv.x * aspect, v_uv.y);
+            
+            // 4. Calculate the distance from the current pixel 'p' to the capsule's central line segment.
+            vec2 line_vec = segment_end - segment_start;
+            vec2 point_vec = p - segment_start;
+
+            float dist;
+            // Handle the case of a perfect circle (aspect <= 1) to avoid division by zero.
+            if (line_half_length == 0.0) {
+                dist = length(p) - radius;
+            } else {
+                // Project point_vec onto line_vec and clamp it to the segment.
+                float h = clamp(dot(point_vec, line_vec) / dot(line_vec, line_vec), 0.0, 1.0);
+                // The distance is from 'p' to the closest point on the segment, minus the radius.
+                dist = length(point_vec - line_vec * h) - radius;
+            }
+
+            // 5. Use the distance to create a smooth, anti-aliased edge.
+            float aa = 0.02 / aspect; // Adjust anti-aliasing for stretched shapes
+            alpha = 1.0 - smoothstep(-aa, aa, dist);
+
+            if (alpha < 0.01) {
+                discard; // Optimization: Don't draw fully transparent pixels.
+            }
+
+        } else {
+            // EPS -> circle
+            float radius = 0.5;
+            float dist = length(v_uv) - radius;
+
+            // Use smoothstep for anti-aliasing
+            float aa = 0.02;
+            alpha = 1.0 - smoothstep(-aa, aa, dist);
+
+            if (alpha < 0.01) {
+                discard;
+            }
+        }
+
+        f_color = vec4(v_color, alpha);
     }
 """
 
@@ -96,6 +155,10 @@ def main():
     ctx = moderngl.create_standalone_context(require=330)
     print(f"ModernGL Context Created using: {ctx.info['GL_RENDERER']}")
     
+    # Enable blending for anti-aliasing
+    ctx.enable(moderngl.BLEND)
+    ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+
     # Create the GPU program by compiling and linking the two shaders.
     prog = ctx.program(vertex_shader=VERTEX_SHADER, fragment_shader=FRAGMENT_SHADER)
 
@@ -115,7 +178,7 @@ def main():
     # Create another VBO for the per-instance data. We 'reserve' a large amount of memory
     # on the GPU for this buffer. We will overwrite its contents each frame.
     # Reserving helps avoid re-allocating memory every frame, which is slow.
-    vbo_per_instance = ctx.buffer(reserve=100000 * 8 * 4) # Reserve space for 100k objects, 8 floats each, 4 bytes per float.
+    vbo_per_instance = ctx.buffer(reserve=100000 * 9 * 4) # Reserve space for per-instance data (9 floats per instance: pos, size, angle, color, shape)
 
     #################### make the above dynamic based on number of objects in data file
 
@@ -130,7 +193,7 @@ def main():
             # '2f 2f 1f 3f /i' means:
             # 2 floats for in_pos, 2 for in_size, 1 for in_angle, 3 for in_color.
             # '/i' specifies that this is per-instance data, advancing once per instance, not per vertex.
-            (vbo_per_instance, '2f 2f 1f 3f /i', 'in_pos', 'in_size', 'in_angle', 'in_color')
+            (vbo_per_instance, '2f 2f 1f 3f 1f /i', 'in_pos', 'in_size', 'in_angle', 'in_color', 'in_shape')
         ]
     )
 
@@ -164,21 +227,23 @@ def main():
             # Normalize simulation coordinates from (-10, 10) to GPU screen space (-1, 1).
             pos_x = b['position']['x'] / 10.0
             pos_y = b['position']['y'] / 10.0
-            size_x = b['length'] / 10.0
-            size_y = BACTERIA_WIDTH / 10.0
+            size_x = b['length'] / 15.0
+            size_y = BACTERIA_WIDTH / 15.0
             angle = b['angle']
             color = (0.2, 0.5, 1.0) # Blueish
-            instance_data.extend([pos_x, pos_y, size_x, size_y, angle, *color])
+            shape = 0.0  # Capsule shape for bacteria
+            instance_data.extend([pos_x, pos_y, size_x, size_y, angle, *color, shape])
 
-        # Add EPS data (rendered as squares for simplicity using the same shader)
+        # Add EPS data 
         for e in data.get('eps', []):
             pos_x = e['position']['x'] / 10.0
             pos_y = e['position']['y'] / 10.0
-            size_x = 0.5 / 10.0 # radius 0.25 -> diameter 0.5
+            size_x = 0.5 / 10.0 # diameter 0.5
             size_y = 0.5 / 10.0
             angle = 0.0
             color = (1.0, 0.2, 0.2) # Red
-            instance_data.extend([pos_x, pos_y, size_x, size_y, angle, *color])
+            shape = 1.0  # Circle shape for EPS
+            instance_data.extend([pos_x, pos_y, size_x, size_y, angle, *color, shape])
         
         if not instance_data: # Skip empty frames
             # Create a blank frame to keep video timing consistent
@@ -193,7 +258,7 @@ def main():
             vbo_per_instance.write(np_data)
             
             # Calculate the number of instances to render. There are 8 floats per instance.
-            num_instances = len(np_data) // 8
+            num_instances = len(np_data) // 9
             
             # THE RENDER COMMAND!
             # Tell the GPU to render the VAO using the TRIANGLE_STRIP method for 'num_instances' times.

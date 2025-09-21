@@ -10,12 +10,12 @@ public class Main {
 
         //G:\My Drive\Temp\Bogus Boulders Capstone\Visualisation\simulation_data
         if (args.length != 1) {
-            System.out.println("One argument is required: existing destination directory for timesteps of the simulation");
-            return;
+            var dir = Paths.get("C:\\Users\\bobje\\OneDrive - University of Cape Town\\CSC3003\\Capstone\\Bogus-Boulders\\BBoulders\\simulation_data")
+                    ;
         }
 
         System.out.println("Running");
-        var dir = Paths.get(args[0]);
+        var dir = Paths.get("C:\\Users\\bobje\\OneDrive - University of Cape Town\\CSC3003\\Capstone\\Bogus-Boulders\\BBoulders\\simulation_data");
         double dt = 1.0/fps;
 
         for (File f : Objects.requireNonNull(dir.toFile().listFiles()))

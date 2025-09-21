@@ -27,3 +27,6 @@ replay_pid*
 *.png
 *.mp4
 *.json
+Simulator/.idea/misc.xml
+Simulator/.idea/misc.xml
+Simulator/src/main/java/Main.java
