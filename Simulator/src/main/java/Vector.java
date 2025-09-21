@@ -48,4 +48,88 @@ public record Vector(double x, double y) {
     public double cross(Vector v) {
         return x * v.y - y * v.x;
     }
+
+    //calculates the t and s values such that ||p0 + t*d0 - p1 - s*d1||^2 is minimised, d1 and d2 are assumed to be unit vectors
+    public static Vector minTSLineDistance(Vector p1, Vector d1, Vector p2, Vector d2) {
+        double a = d1.dot(d1);
+        double b = d1.dot(d2);
+        double c = d2.dot(d2);
+        Vector w = p1.subtract(p2);
+        double d = w.dot(d1);
+        double e = w.dot(d2);
+
+        double det = a*c-b*b;
+        double t = 0;
+        double s = 0;
+
+        if (Math.abs(det) > 1e-6) { //if lines are not almost parallel
+            t = (b*e-c*d)/det;
+            s = (a*e-b*d)/det;
+        }
+
+        return new Vector(t,s);
+    }
+
+    //calculates the t and s values such that ||p0 + t*d0 - p1 - s*d1||^2 is minimised, where |t|<=tBound and |s|<=sBound, d1 and d2 are assumed to be unit vectors
+    public static Vector boundedMinTSLineDistance(Vector p1, Vector d1, double tBound, Vector p2, Vector d2, double sBound) {
+
+        //first case - unbounded solution is within bounds and valid
+        Vector unboundedSoln = minTSLineDistance(p1, d1, p2, d2);
+        if (Math.abs(unboundedSoln.x) <= tBound && Math.abs(unboundedSoln.y) <= sBound)
+            return unboundedSoln;
+
+        //we now consider all cases on the boundaries and in the corners
+        double[] ts = new double[] { tBound, tBound, -tBound, -tBound, tBound, -tBound, 0, 0 };
+        double[] ss = new double[] { sBound, -sBound, sBound, -sBound, 0, 0, sBound, -sBound };
+        double[] dists = new double[8];
+
+        //compute corner cases
+        for (int i = 0; i < 4; i++) {
+            Vector tPos = d1.scale(ts[i]).add(p1);
+            Vector sPos = d2.scale(ss[i]).add(p2);
+            dists[i] = tPos.subtract(sPos).mag();
+        }
+
+        //t on boundary, vary s
+        for (int i = 4; i < 6; i++) {
+            Vector fixedTPos = d1.scale(ts[i]).add(p1);
+            double s = closestTtoPoint(p2, d2, fixedTPos);
+
+            if (Math.abs(s) <= sBound) { //ensure s is in the bound
+                Vector sPos = d2.scale(s).add(p2);
+                dists[i] = fixedTPos.subtract(sPos).mag();
+                ss[i] = s;
+            } else {
+                dists[i] = Double.MAX_VALUE;
+            }
+        }
+
+        //s on boundary, vary t
+        for (int i = 6; i < 8; i++) {
+            Vector fixedSPos = d2.scale(ss[i]).add(p2);
+            double t = closestTtoPoint(p1, d1, fixedSPos);
+
+            if (Math.abs(t) <= tBound) { //ensure t is in the bound
+                Vector tPos = d1.scale(t).add(p1);
+                dists[i] = fixedSPos.subtract(tPos).mag();
+                ts[i] = t;
+            } else {
+                dists[i] = Double.MAX_VALUE;
+            }
+        }
+
+        //determine minimum from above cases
+        double minT = ts[0];
+        double minS = ss[0];
+        double minDist = dists[0];
+        for (int i = 1; i < 8; i++) {
+            if (dists[i] < minDist) {
+                minDist = dists[i];
+                minT = ts[i];
+                minS = ss[i];
+            }
+        }
+
+        return new Vector(minT, minS);
+    }
 }

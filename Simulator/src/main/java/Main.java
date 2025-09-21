@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) {//todo simulator class
         int fps = 30;
         int secToRunFor = 5;
 

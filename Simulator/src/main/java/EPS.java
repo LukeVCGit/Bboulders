@@ -63,7 +63,7 @@ public class EPS {
         return disp.unitize().scale(forceMag);
     }
 
-    protected Vector resolveCellCollision(Cell col) { //todo
+    protected Vector resolveCellCollision(Cell col) {
         Vector cellDir = Vector.fromMag(1, col.angle);
 
         //find the closest point on the cell's main axis to the eps
