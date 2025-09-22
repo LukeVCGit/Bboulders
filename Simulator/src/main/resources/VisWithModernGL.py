@@ -13,6 +13,7 @@ OUTPUT_VIDEO = 'video_gpu.mp4'
 FPS = 30
 FRAME_SIZE = (1024, 1024)
 BACTERIA_WIDTH = 1.0 
+VISUAL_SCALE = 20.0  # Simulation space is from -10 to 10 in both x and y
 
 # Vertex Shader positions each corner of base shape
 # Now we pass shape type to fragment shader for proper rendering
@@ -134,6 +135,28 @@ FRAGMENT_SHADER = """
     }
 """
 
+def bacteria_data(b, bacteria_width):
+# Normalize simulation coordinates from sISUALISATION_SCALE to GPU screen space (-1, 1).
+    pos_x = b['position']['x'] /VISUAL_SCALE
+    pos_y = b['position']['y'] /VISUAL_SCALE
+    size_x = b['length'] /VISUAL_SCALE
+    size_y = BACTERIA_WIDTH /VISUAL_SCALE
+    angle = b['angle']
+    color = (0.2, 0.5, 1.0) # Blueish
+    shape = 0.0  # Capsule shape for bacteria
+    return [pos_x, pos_y, size_x, size_y, angle, *color, shape]
+
+def eps_data(e):
+    pos_x = e['position']['x'] /VISUAL_SCALE
+    pos_y = e['position']['y'] /VISUAL_SCALE
+    size_x = 0.5 /VISUAL_SCALE # diameter 0.5
+    size_y = 0.5 /VISUAL_SCALE
+    angle = 0.0
+    color = (1.0, 0.2, 0.2) # Red
+    shape = 1.0  # Circle shape for EPS
+    return [pos_x, pos_y, size_x, size_y, angle, *color, shape]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Biofilm simulation video generator")
     parser.add_argument("--data_dir", default=DATA_DIRECTORY,
@@ -207,7 +230,7 @@ def main():
     # --- 4. MAIN RENDERING LOOP ---
     files = sorted(glob.glob(os.path.join(data_dir, "*.boulder")))
     if not files:
-        print(f"No MessagePack files found in '{data_dir}'.")
+        print(f"No MessagePack (.boulder) files found in '{data_dir}'.")
         return
         
     print(f"Found {len(files)} frames. Starting GPU rendering...")
@@ -225,26 +248,12 @@ def main():
         
         # Add bacteria data
         for b in data.get('bacteria', []):
-            # Normalize simulation coordinates from (-10, 10) to GPU screen space (-1, 1).
-            pos_x = b['position']['x'] / 10.0
-            pos_y = b['position']['y'] / 10.0
-            size_x = b['length'] / 10.0
-            size_y = BACTERIA_WIDTH / 10.0
-            angle = b['angle']
-            color = (0.2, 0.5, 1.0) # Blueish
-            shape = 0.0  # Capsule shape for bacteria
-            instance_data.extend([pos_x, pos_y, size_x, size_y, angle, *color, shape])
+            instance_data.extend(bacteria_data(b, BACTERIA_WIDTH))
 
         # Add EPS data 
         for e in data.get('eps', []):
-            pos_x = e['position']['x'] / 10.0
-            pos_y = e['position']['y'] / 10.0
-            size_x = 0.5 / 10.0 # diameter 0.5
-            size_y = 0.5 / 10.0
-            angle = 0.0
-            color = (1.0, 0.2, 0.2) # Red
-            shape = 1.0  # Circle shape for EPS
-            instance_data.extend([pos_x, pos_y, size_x, size_y, angle, *color, shape])
+            instance_data.extend(eps_data(e))
+
         
         if not instance_data: # Skip empty frames
             # Create a blank frame to keep video timing consistent
