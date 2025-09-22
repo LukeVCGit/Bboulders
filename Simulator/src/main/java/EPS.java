@@ -9,7 +9,7 @@ public class EPS {
     protected static final double motility = 300;
     protected static final double phi = 3.5;
     protected static final double nu = 200;
-    protected static final double E = 1e3; //1e3 works nicely
+    protected static final double E = 3e3; //1e3 works nicely
 
     // derived constants
     protected static final Random rng = new Random();

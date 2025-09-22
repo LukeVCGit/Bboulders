@@ -1,12 +1,15 @@
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Objects;
 
 public class Main {
     public static void main(String[] args) {//todo simulator class
-        int fps = 30;
-        int secToRunFor = 10;
+        int fps = 60;
+        int secToRunFor = 15;
 
         //G:\My Drive\Temp\Bogus Boulders Capstone\Visualisation\simulation_data
         if (args.length != 1) {
@@ -16,6 +19,6 @@ public class Main {
 
         System.out.println("Running");
         var dir = Paths.get(args[0]);
-        Simulation.run(fps, secToRunFor, dir);
+        Simulation.run(fps, secToRunFor);
     }
 }
