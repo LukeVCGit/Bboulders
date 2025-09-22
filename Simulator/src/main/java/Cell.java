@@ -125,7 +125,7 @@ public class Cell extends EPS {
 
         if (dist > d_0) //ignore collision if too far apart
             return Vector.ORIGIN;
-        else if (dist < 1e-3) //special case for disp if dist == 0 to prevent NaN error
+        else if (dist < 1e-6) //special case for disp if dist == 0 to prevent NaN error
             disp = position.subtract(col.position);
 
         double h = d_0 - dist; //overlap between the two cells

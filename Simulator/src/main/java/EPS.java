@@ -26,7 +26,7 @@ public class EPS {
     }
 
     public EPS(Vector position) {
-        this.position = position; //todo clamp position to be within boundary
+        this.position = position;
     }
 
     private Vector epsilon() {

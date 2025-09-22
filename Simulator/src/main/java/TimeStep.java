@@ -3,15 +3,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 
 public class TimeStep {
     private static final ObjectMapper msgpackMapper = new ObjectMapper(new MessagePackFactory());
-    private static final ForkJoinPool pool =  new ForkJoinPool();
-    private static final List<ForkJoinTask<?>> fileSaveTasks = new ArrayList<>();
+    private static final ForkJoinPool pool = new ForkJoinPool();
+    private static ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+    private static final List<Future<?>> ioTasks = new ArrayList<>();
 
     private List<EPS> eps;
     private List<Cell> bacteria;
@@ -74,7 +74,6 @@ public class TimeStep {
 
     private void save(Path dir, int i) {
         Path destFile = dir.resolve(String.format("%05d.boulder", i));
-
         try {
             byte[] data = msgpackMapper.writeValueAsBytes(this);
             Files.write(destFile, data);
@@ -84,12 +83,18 @@ public class TimeStep {
     }
 
     public void startSaveAsync(Path dir, int i) {
-        var task = pool.submit(() -> save(dir,i));
-        fileSaveTasks.add(task);
+        var ioTask = ioExecutor.submit(() -> save(dir, i));
+        ioTasks.add(ioTask);
     }
 
     public static void saveFrames() {
-        for (var task : fileSaveTasks)
-            task.join();
+        for (var task : ioTasks) {
+            try {
+                task.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        ioExecutor.shutdown();
     }
 }
