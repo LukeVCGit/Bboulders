@@ -10,8 +10,15 @@ public class Cell extends EPS {
 
     final double angle;
     final double length;
-
     private transient double torque = 0;
+
+    public double getAngle() {
+        return angle;
+    }
+
+    public double getLength() {
+        return length;
+    }
 
     public Cell(Vector position, double angle, double length) {
         super(position);
