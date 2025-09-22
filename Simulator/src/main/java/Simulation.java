@@ -11,7 +11,7 @@ public class Simulation {
     public static void run(int fps, int secToRun) {
         //get python script path
         var res = Simulation.class.getResource("VisWithModernGL.py");
-        String visPath = res.getPath().substring(1);
+        String visPath = res.getPath().substring(1).replace("%20", " ");
 
         //create simulation data dir
         var simulationDataDir = Paths.get(visPath).getParent().resolve("simulation_data");
