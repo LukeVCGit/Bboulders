@@ -1,5 +1,6 @@
 import argparse
 import json
+import msgpack
 import os
 import glob
 import numpy as np
@@ -136,7 +137,7 @@ FRAGMENT_SHADER = """
 def main():
     parser = argparse.ArgumentParser(description="Biofilm simulation video generator")
     parser.add_argument("--data_dir", default=DATA_DIRECTORY,
-                        help="Directory containing simulation JSON files")
+                        help="Directory containing simulation MessagePack files")
     parser.add_argument("--output", default=OUTPUT_VIDEO,
                         help="Output video filename")
     args = parser.parse_args()
@@ -204,9 +205,9 @@ def main():
     )
     
     # --- 4. MAIN RENDERING LOOP ---
-    files = sorted(glob.glob(os.path.join(data_dir, "*.json")))
+    files = sorted(glob.glob(os.path.join(data_dir, "*.msgpack")))
     if not files:
-        print(f"No JSON files found in '{data_dir}'.")
+        print(f"No MessagePack files found in '{data_dir}'.")
         return
         
     print(f"Found {len(files)} frames. Starting GPU rendering...")
@@ -216,7 +217,7 @@ def main():
     for i, filename in enumerate(files):
         print(f"\rProcessing frame {i+1}/{len(files)}", end="")
         with open(filename) as f:
-            data = json.load(f)
+            data = msgpack.load(f, raw=False)
 
         # Collate all object data for this frame into a single flat list.
         # This is much faster than sending data to the GPU one object at a time.
@@ -227,8 +228,8 @@ def main():
             # Normalize simulation coordinates from (-10, 10) to GPU screen space (-1, 1).
             pos_x = b['position']['x'] / 10.0
             pos_y = b['position']['y'] / 10.0
-            size_x = b['length'] / 15.0
-            size_y = BACTERIA_WIDTH / 15.0
+            size_x = b['length'] / 10.0
+            size_y = BACTERIA_WIDTH / 10.0
             angle = b['angle']
             color = (0.2, 0.5, 1.0) # Blueish
             shape = 0.0  # Capsule shape for bacteria
