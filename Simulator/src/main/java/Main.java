@@ -7,18 +7,12 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 public class Main {
-    public static void main(String[] args) {//todo simulator class
+    public static void main(String[] args) {
         int fps = 60;
         int secToRunFor = 15;
 
-        //G:\My Drive\Temp\Bogus Boulders Capstone\Visualisation\simulation_data
-        if (args.length != 1) {
-            System.out.println("One argument is required: existing destination directory for timesteps of the simulation");
-            return;
-        }
-
         System.out.println("Running");
-        var dir = Paths.get(args[0]);
+
         Simulation.run(fps, secToRunFor);
     }
 }
