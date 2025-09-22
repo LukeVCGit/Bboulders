@@ -216,7 +216,7 @@ def main():
 
     for i, filename in enumerate(files):
         print(f"\rProcessing frame {i+1}/{len(files)}", end="")
-        with open(filename) as f:
+        with open(filename, "rb") as f:
             data = msgpack.load(f, raw=False)
 
         # Collate all object data for this frame into a single flat list.

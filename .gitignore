@@ -30,3 +30,7 @@ replay_pid*
 Simulator/.idea/misc.xml
 Simulator/.idea/misc.xml
 Simulator/src/main/java/Main.java
+simulation_data/00004.msgpack
+simulation_data/00005.msgpack
+Simulator/src/main/resources/simulation_data/00004.msgpack
+Simulator/src/main/resources/simulation_data/00005.msgpack
