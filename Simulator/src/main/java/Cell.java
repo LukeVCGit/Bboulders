@@ -5,6 +5,9 @@ import java.util.List;
 //todo improve names
 
 public class Cell extends EPS {
+    protected static final double temp_C = 3; // todo implement PDE
+    protected static final double DAUGHTER_ANGLE_RANGE = 20 * (Math.PI / 180);
+
     final double angle;
     final double length;
 
@@ -26,13 +29,13 @@ public class Cell extends EPS {
         List<EPS> cells = new ArrayList<EPS>();
 
         if (newLength >= l_c) { //split condition
-            Vector daughterPos = Vector.fromMag(newLength*0.25, newAngle).add(newPos);
+            Vector daughterPos = Vector.fromMag(newLength*0.25 + 0.5*r_0, newAngle).add(newPos);
             double daughterAngle = newAngle + (rng.nextDouble()-0.5) * DAUGHTER_ANGLE_RANGE;
-            cells.add(new Cell(daughterPos,  daughterAngle, l_ini));
+            cells.add(new Cell(daughterPos,  daughterAngle, (newLength-d_0)*0.5));
 
-            newPos = Vector.fromMag(-newLength*0.25, newAngle).add(newPos);
+            newPos = Vector.fromMag(-newLength*0.25 - 0.5*r_0, newAngle).add(newPos);
             newAngle += (rng.nextDouble()-0.5) * DAUGHTER_ANGLE_RANGE;
-            newLength = l_ini;
+            newLength = (newLength-d_0)*0.5;
         }
 
         cells.add(new Cell(newPos, newAngle, newLength));
@@ -104,46 +107,27 @@ public class Cell extends EPS {
         Vector d1 = Vector.fromMag(1, angle);
         Vector d2 = Vector.fromMag(1, col.angle);
 
-        double a = d1.dot(d1);
-        double b = d1.dot(d2);
-        double c = d2.dot(d2);
-        Vector w = position.subtract(col.position);
-        double d = w.dot(d1);
-        double e = w.dot(d2);
-
-        double det = a*c-b*b;
-        double t = 0;
-        double s = 0;
-
-        if (Math.abs(det) > 1e-6) { //if lines are not almost parallel
-            t = (b*e-c*d)/det;
-            s = (a*e-b*d)/det;
-        }
-
-        //bounds of t and s
-        double tb = length*0.5;
-        double sb = col.length*0.5;
-
-        // temp
-        t = Math.clamp(t, -tb, tb);
-        s = Math.clamp(s, -sb, sb);
+        Vector pair = Vector.boundedMinTSLineDistance(position, d1, length*0.5, col.position, d2, col.length*0.5);
 
         //closest point on each cell
-        Vector tPos = Vector.fromMag(t, angle).add(position);
-        Vector sPos = Vector.fromMag(s, col.angle).add(col.position);
+        Vector tPos = Vector.fromMag(pair.x(), angle).add(position);
+        Vector sPos = Vector.fromMag(pair.y(), col.angle).add(col.position);
         
         Vector disp = tPos.subtract(sPos);
         double dist = disp.mag();
 
         if (dist > d_0) //ignore collision if too far apart
             return Vector.ORIGIN;
+        else if (dist == 0.0) //special case for disp if dist == 0 to prevent NaN error
+            disp = position.subtract(col.position);
 
         double h = d_0 - dist; //overlap between the two cells
         double forceMag = E * Math.sqrt(d_0 * h * h * h);
+        Vector force = disp.unitize().scale(forceMag);
 
-        if (dist == 0.0) //special case for disp if dist == 0 to prevent NaN error
-            disp = w;
+        Vector forceAlongAxis = d1.scale(force.dot(d1));
+        torque += tPos.cross(force);
 
-        return disp.unitize().scale(forceMag);
+        return forceAlongAxis;
     }
 }

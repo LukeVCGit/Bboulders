@@ -9,8 +9,6 @@ public class EPS {
     protected static final double motility = 300;
     protected static final double phi = 3.5;
     protected static final double nu = 200;
-    protected static final double temp_C = 3; // todo implement PDE
-    protected static final double DAUGHTER_ANGLE_RANGE = 45 * (Math.PI / 180);
     protected static final double E = 1e3; //1e3 works nicely
 
     // derived constants
