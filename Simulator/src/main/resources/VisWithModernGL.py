@@ -205,7 +205,7 @@ def main():
     )
     
     # --- 4. MAIN RENDERING LOOP ---
-    files = sorted(glob.glob(os.path.join(data_dir, "*.msgpack")))
+    files = sorted(glob.glob(os.path.join(data_dir, "*.boulder")))
     if not files:
         print(f"No MessagePack files found in '{data_dir}'.")
         return
