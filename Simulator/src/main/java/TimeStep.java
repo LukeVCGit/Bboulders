@@ -5,16 +5,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
-
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.msgpack.jackson.dataformat.MessagePackFactory;
 
 public class TimeStep {
-    private static final Gson gson = new Gson();
+    private static final ObjectMapper msgpackMapper = new ObjectMapper(new MessagePackFactory());
     private static final ForkJoinPool pool =  new ForkJoinPool();
     private static final List<ForkJoinTask<?>> fileSaveTasks = new ArrayList<>();
 
     private List<EPS> eps;
     private List<Cell> bacteria;
+
+    public List<EPS> getEps() {
+        return eps;
+    }
+
+    public List<Cell> getBacteria() {
+        return bacteria;
+    }
 
     public TimeStep(List<EPS> eps, List<Cell> bacteria) {
         this.eps = eps;
@@ -65,11 +73,11 @@ public class TimeStep {
     }
 
     private void save(Path dir, int i) {
-        String data = gson.toJson(this); //todo messagepack
-        Path destFile = dir.resolve(String.format("%05d.json", i));
+        Path destFile = dir.resolve(String.format("%05d.boulder", i));
 
-        try { //java bloat
-            Files.writeString(destFile, data);
+        try {
+            byte[] data = msgpackMapper.writeValueAsBytes(this);
+            Files.write(destFile, data);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

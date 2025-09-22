@@ -21,6 +21,10 @@ public class EPS {
 
     protected final Vector position;
 
+    public Vector getPosition() {
+        return position;
+    }
+
     public EPS(Vector position) {
         this.position = position; //todo clamp position to be within boundary
     }
