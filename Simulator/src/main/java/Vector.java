@@ -26,6 +26,12 @@ public record Vector(double x, double y) {
         return new Vector(x - v.x, y - v.y);
     }
 
+    public double dist(Vector v) {
+        double dx = x - v.x;
+        double dy = y - v.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
     public Vector unitize() {
         double size = mag();
         return new Vector(x / size, y / size);
@@ -87,7 +93,7 @@ public record Vector(double x, double y) {
         for (int i = 0; i < 4; i++) {
             Vector tPos = d1.scale(ts[i]).add(p1);
             Vector sPos = d2.scale(ss[i]).add(p2);
-            dists[i] = tPos.subtract(sPos).mag();
+            dists[i] = tPos.dist(sPos);
         }
 
         //t on boundary, vary s
@@ -97,7 +103,7 @@ public record Vector(double x, double y) {
 
             if (Math.abs(s) <= sBound) { //ensure s is in the bound
                 Vector sPos = d2.scale(s).add(p2);
-                dists[i] = fixedTPos.subtract(sPos).mag();
+                dists[i] = fixedTPos.dist(sPos);
                 ss[i] = s;
             } else {
                 dists[i] = Double.MAX_VALUE;
@@ -111,7 +117,7 @@ public record Vector(double x, double y) {
 
             if (Math.abs(t) <= tBound) { //ensure t is in the bound
                 Vector tPos = d1.scale(t).add(p1);
-                dists[i] = fixedSPos.subtract(tPos).mag();
+                dists[i] = fixedSPos.dist(tPos);
                 ts[i] = t;
             } else {
                 dists[i] = Double.MAX_VALUE;

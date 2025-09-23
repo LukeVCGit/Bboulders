@@ -81,7 +81,7 @@ class VectorTest {
             Vector tPos = d1.scale(soln.x()).add(p1);
             Vector sPos = d2.scale(soln.y()).add(p2);
 
-            double dist = tPos.subtract(sPos).mag();
+            double dist = tPos.dist(sPos);
 
             assertEquals(0, dist, EPS);
         }
@@ -104,7 +104,7 @@ class VectorTest {
         // residual should be near zero
         Vector closest1 = p1.add(d1.scale(ts.x()));
         Vector closest2 = p2.add(d2.scale(ts.y()));
-        assertEquals(0.0, closest1.subtract(closest2).mag(), 1e-8, "closest points should coincide");
+        assertEquals(0.0, closest1.dist(closest2), 1e-8, "closest points should coincide");
     }
 
     @Test
@@ -162,13 +162,13 @@ class VectorTest {
         Vector tPos = d1.scale(soln.x()).add(p1);
         Vector sPos = d2.scale(soln.y()).add(p2);
 
-        double dist = tPos.subtract(sPos).mag();
+        double dist = tPos.dist(sPos);
 
         for (double t = -tBound; t <= tBound; t += 0.05) {
             for (double s = -sBound; s <= sBound; s += 0.05) {
                 tPos = d1.scale(t).add(p1);
                 sPos = d2.scale(s).add(p2);
-                double checkedDist = tPos.subtract(sPos).mag();
+                double checkedDist = tPos.dist(sPos);
                 assertTrue(dist <= checkedDist + TOLERANCE, "Optimal distance not found. Guessed dist: " + dist + ", better solution: " + checkedDist);
             }
         }

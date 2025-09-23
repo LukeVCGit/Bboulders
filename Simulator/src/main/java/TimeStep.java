@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,11 +11,13 @@ import org.msgpack.jackson.dataformat.MessagePackFactory;
 public class TimeStep {
     private static final ObjectMapper msgpackMapper = new ObjectMapper(new MessagePackFactory());
     private static final ForkJoinPool pool = new ForkJoinPool();
-    private static ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+    private static final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
     private static final List<Future<?>> ioTasks = new ArrayList<>();
+    private static final double gridWidth = EPS.L_MAX;
 
     private List<EPS> eps;
     private List<Cell> bacteria;
+    private transient HashMap<Vector, List<EPS>> grid = new HashMap<>();
 
     public List<EPS> getEps() {
         return eps;
@@ -27,16 +30,41 @@ public class TimeStep {
     public TimeStep(List<EPS> eps, List<Cell> bacteria) {
         this.eps = eps;
         this.bacteria = bacteria;
+
+        //setup grid
+        for (EPS ep : eps)
+            addToGrid(ep);
+        for (Cell c  : bacteria)
+            addToGrid(c);
+    }
+
+    private void addToGrid(EPS particle) {
+        Vector gridCoords = new Vector(Math.round(particle.position.x() / gridWidth), Math.round(particle.position.y() / gridWidth));
+        List<EPS> cellContents = grid.get(gridCoords);
+        if (cellContents == null) {
+            cellContents = new ArrayList<>();
+            cellContents.add(particle);
+            grid.put(gridCoords, cellContents);
+        } else {
+            cellContents.add(particle);
+        }
+    }
+
+    private List<EPS> getParticlesAtPosition(Vector pos) {
+        Vector gridCoords = new Vector(Math.round(pos.x() / gridWidth), Math.round(pos.y() / gridWidth));
+        List<EPS> cellContents = grid.get(gridCoords);
+        if (cellContents == null)
+            cellContents = new ArrayList<>();
+        return cellContents;
     }
 
     public TimeStep next(double dt) { //todo parallelise
+        //todo EPS production
         List<EPS> newEps = new ArrayList<>();
         for (EPS ep : eps) {
             var colliders = potentialColliders(ep);
             newEps.addAll(ep.tick(dt, colliders));
         }
-
-        //todo EPS production
 
         List<Cell> newBacteria = new ArrayList<>();
         for (Cell cell : bacteria) {
@@ -50,23 +78,13 @@ public class TimeStep {
 
     private List<EPS> potentialColliders(EPS particle) { //todo: optimise with grid
         List<EPS> potentialColliders = new ArrayList<>();
+        double xPos = particle.position.x();
+        double yPos = particle.position.y();
 
-        for (EPS ep : eps) { //check if any EPS particles are close enough
-            if (ep.position.equals(particle.position)) //valid collisions are not with oneself
-                continue;
-
-            double dist = ep.position.subtract(particle.position).mag();
-            if (dist <= 0.5*(EPS.d_eps + EPS.L_MAX)) //particle might be a cell of maximum length
-                potentialColliders.add(ep);
-        }
-
-        for (Cell cell : bacteria) { //check if any cells are close enough
-            if (cell.position.equals(particle.position)) //valid collisions are not with oneself
-                continue;
-
-            double dist = cell.position.subtract(particle.position).mag();
-            if (dist <= EPS.L_MAX) //particle might be a cell of maximum length
-                potentialColliders.add(cell);
+        for (double x = xPos-gridWidth; x <= xPos + gridWidth + 1e-3; x += gridWidth) {
+            for (double y = yPos-gridWidth; y <= yPos + gridWidth + 1e-3; y += gridWidth) {
+                potentialColliders.addAll(getParticlesAtPosition(new Vector(x,y)));
+            }
         }
 
         return potentialColliders;

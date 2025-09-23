@@ -43,6 +43,11 @@ public class EPS {
         Vector sum = Vector.ORIGIN;
 
         for (EPS col : potentialColliders) {
+            if (position.equals(col.position)) //valid collisions are not with oneself
+                continue;
+            if (position.dist(col.position) > EPS.L_MAX) //ignore collisions too far away
+                continue;
+
             if (col.getClass() != Cell.class)
                 sum = sum.add(resolveEPSCollision(col));
             else

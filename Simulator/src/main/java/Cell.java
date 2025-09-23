@@ -1,9 +1,6 @@
 import java.util.ArrayList;
 import java.util.List;
 
-//todo unit testing for everything
-//todo improve names
-
 public class Cell extends EPS {
     protected static final double temp_C = 3; // todo implement PDE
     protected static final double DAUGHTER_ANGLE_RANGE = 20 * (Math.PI / 180);
@@ -110,7 +107,7 @@ public class Cell extends EPS {
     }
 
     @Override
-    protected Vector resolveCellCollision(Cell col) { //todo
+    protected Vector resolveCellCollision(Cell col) {
         Vector d1 = Vector.fromMag(1, angle);
         Vector d2 = Vector.fromMag(1, col.angle);
 
