@@ -55,6 +55,10 @@ public record Vector(double x, double y) {
         return x * v.y - y * v.x;
     }
 
+    public boolean equals(Vector v) {
+        return x == v.x && y == v.y;
+    }
+
     //calculates the t and s values such that ||p0 + t*d0 - p1 - s*d1||^2 is minimised, d1 and d2 are assumed to be unit vectors
     public static Vector minTSLineDistance(Vector p1, Vector d1, Vector p2, Vector d2) {
         double a = d1.dot(d1);

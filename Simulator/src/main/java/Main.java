@@ -8,8 +8,8 @@ import java.util.Objects;
 
 public class Main {
     public static void main(String[] args) {
-        int fps = 120;
-        int secToRunFor = 15;
+        int fps = 30;
+        int secToRunFor = 20;
 
         System.out.println("Running");
 

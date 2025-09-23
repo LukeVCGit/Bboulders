@@ -1,18 +1,18 @@
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class EPS {
     //constants
     protected static final double d_0 = 1;
     protected static final double l_c = 5;
-    protected static final double motility = 300;
+    protected static final double motility = 700;
     protected static final double phi = 3.5;
     protected static final double nu = 200;
     protected static final double E = 3e3; //1e3 works nicely
 
     // derived constants
-    protected static final Random rng = new Random();
     public static final double d_eps = 0.5 * d_0;
     public static final double L_MAX = l_c + d_0;
     protected static final double r_0 = d_0 * 0.5;
@@ -29,9 +29,9 @@ public class EPS {
         this.position = position;
     }
 
-    private Vector epsilon() {
-        double mag = rng.nextDouble() * 2e-3 - 1e-3;
-        double ang = 2*Math.PI*rng.nextDouble();
+    private Vector epsilon() { //todo make rng per thread
+        double mag = ThreadLocalRandom.current().nextDouble() * 2e-3 - 1e-3;
+        double ang = 2*Math.PI*ThreadLocalRandom.current().nextDouble();
         return Vector.fromMag(mag, ang);
     }
 
@@ -113,5 +113,9 @@ public class EPS {
         List<EPS> output = new ArrayList<>(1);
         output.add(copy);
         return output;
+    }
+
+    public double area() {
+        return Math.PI * r_0 * r_0;
     }
 }

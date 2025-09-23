@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Cell extends EPS {
     protected static final double temp_C = 3; // todo implement PDE
@@ -34,11 +35,11 @@ public class Cell extends EPS {
 
         if (newLength >= l_c) { //split condition
             Vector daughterPos = Vector.fromMag(newLength*0.25 + 0.5*r_0, newAngle).add(newPos);
-            double daughterAngle = newAngle + (rng.nextDouble()-0.5) * DAUGHTER_ANGLE_RANGE;
+            double daughterAngle = newAngle + (ThreadLocalRandom.current().nextDouble() -0.5) * DAUGHTER_ANGLE_RANGE;
             cells.add(new Cell(daughterPos,  daughterAngle, (newLength-d_0)*0.5));
 
             newPos = Vector.fromMag(-newLength*0.25 - 0.5*r_0, newAngle).add(newPos);
-            newAngle += (rng.nextDouble()-0.5) * DAUGHTER_ANGLE_RANGE;
+            newAngle += (ThreadLocalRandom.current().nextDouble()-0.5) * DAUGHTER_ANGLE_RANGE;
             newLength = (newLength-d_0)*0.5;
         }
 
@@ -57,6 +58,7 @@ public class Cell extends EPS {
         return Vector.fromMag(motility, angle);
     }
 
+    @Override
     public double area() {
         return r_0 * (Math.PI * r_0 + 2 * length);
     }
