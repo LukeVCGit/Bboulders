@@ -30,7 +30,7 @@ public class Cell extends EPS {
         Vector newPos = vel(potentialColliders).scale(dt).add(position);
         double newAngle = angle + angularVelocity()*dt;
 
-        List<EPS> cells = new ArrayList<EPS>();
+        List<EPS> cells = new ArrayList<EPS>(2);
 
         if (newLength >= l_c) { //split condition
             Vector daughterPos = Vector.fromMag(newLength*0.25 + 0.5*r_0, newAngle).add(newPos);

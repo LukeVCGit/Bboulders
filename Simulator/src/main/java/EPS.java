@@ -110,7 +110,7 @@ public class EPS {
         Vector newPos = vel(potentialColliders).scale(dt).add(position);
         EPS copy = new EPS(newPos);
 
-        List<EPS> output = new ArrayList<>();
+        List<EPS> output = new ArrayList<>(1);
         output.add(copy);
         return output;
     }

@@ -33,9 +33,13 @@ public class Simulation {
         TimeStep step = new TimeStep(eps, cells);
         System.out.println("Set up initial condition");
 
-        for (int i = 0; i < secToRun*fps; i++) {
+        int totalSteps = secToRun*fps;
+        for (int i = 0; i < totalSteps; i++) {
             step.startSaveAsync(simulationDataDir, i);
             step = step.next(dt);
+
+            if (i % fps == 0)
+                System.out.println("Completed timestep " + i + "/" + totalSteps);
         }
         System.out.println("Completed timestepping, saving data");
 

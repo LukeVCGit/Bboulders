@@ -10,7 +10,6 @@ import org.msgpack.jackson.dataformat.MessagePackFactory;
 
 public class TimeStep {
     private static final ObjectMapper msgpackMapper = new ObjectMapper(new MessagePackFactory());
-    private static final ForkJoinPool pool = new ForkJoinPool();
     private static final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
     private static final List<Future<?>> ioTasks = new ArrayList<>();
     private static final double gridWidth = EPS.L_MAX;
@@ -60,20 +59,19 @@ public class TimeStep {
 
     public TimeStep next(double dt) { //todo parallelise
         //todo EPS production
-        List<EPS> newEps = new ArrayList<>();
-        for (EPS ep : eps) {
-            var colliders = potentialColliders(ep);
-            newEps.addAll(ep.tick(dt, colliders));
-        }
 
-        List<Cell> newBacteria = new ArrayList<>();
-        for (Cell cell : bacteria) {
+        var newEpsStream = eps.parallelStream().map(eps -> {
+            var colliders = potentialColliders(eps);
+            return eps.tick(dt, colliders).getFirst(); //we can just get first since EPS.tick always returns a list of size 1.
+        });
+
+        var newBactStream = bacteria.parallelStream().flatMap(cell -> {
             var colliders = potentialColliders(cell);
             var newBact = (List<Cell>) (List<?>) cell.tick(dt, colliders);
-            newBacteria.addAll(newBact);
-        }
+            return newBact.stream();
+        });
 
-        return new TimeStep(newEps, newBacteria);
+        return new TimeStep(newEpsStream.toList(), newBactStream.toList());
     }
 
     private List<EPS> potentialColliders(EPS particle) { //todo: optimise with grid
