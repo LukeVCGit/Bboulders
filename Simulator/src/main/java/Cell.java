@@ -69,6 +69,10 @@ public class Cell extends EPS {
         return C / (1+C);
     }
 
+    public Vector getPosition() {
+        return position;
+    }
+
     @Override
     protected Vector resolveEPSCollision(EPS col) {
         Vector cellDir = Vector.fromMag(1, angle);

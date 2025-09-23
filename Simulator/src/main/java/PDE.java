@@ -12,19 +12,19 @@ public class PDE {
     // Sparse matrix (CSR for A = I - dt*D*L)
     private int[] rowPtr, colInd;
     private double[] values;
-
     public PDE(List<Cell> cells) {
         this.cells = cells;
         this.C = new ArrayList<>(nx * ny);
         for (int i = 0; i < nx * ny; i++) {
-            C.add(Double.valueOf(0.0));
+            C.add(0.0);
         }
+
     }
 
     /** Set uniform initial condition */
     public void setInitialCondition(double value) {
         for (int i = 0; i < C.size(); i++) {
-            C.set(i, Double.valueOf(value));
+            C.set(i, value);
         }
     }
 
@@ -37,41 +37,47 @@ public class PDE {
     public void solveStep(double dt) {
         int N = nx * ny;
 
-        // --- Global sink from all cells ---
-        double sinkSum = 0.0;
-        int index = 0;
-        for (Cell cell : cells) {
-            double conc = C.get(index);
-            sinkSum += cell.area() * Cell.f(conc);
-            index++;
-        }
-        double k = 4.0;
-        sinkSum *= k;
-
-        // --- RHS = C^n - dt * sinkSum ---
+        // --- RHS starts as old concentration (implicit Euler base) ---
         double[] rhs = new double[N];
         for (int idx = 0; idx < N; idx++) {
-            rhs[idx] = C.get(idx) - dt * sinkSum;
+            rhs[idx] = C.get(idx);
         }
 
-        // --- Build sparse system (can be precomputed once since it’s constant) ---
+        // --- Apply local sinks ---
+        double k = 4.0;
+
+        for (Cell cell : cells) {
+            // Map cell's (x,y) to nearest grid index
+            int i = (int) Math.round(cell.position.x());
+            int j = (int) Math.round(cell.position.y());
+            if (i >= 0 && i < nx && j >= 0 && j < ny) {
+                int idx = i * ny + j;
+                double conc = C.get(idx);
+                rhs[idx] -= dt * k * cell.area() * Cell.f(conc);
+
+                System.out.println(conc);
+            }
+        }
+
+        // --- Build sparse matrix (can be cached if dt constant) ---
         buildSparseMatrix(dt);
 
         // --- Solve A x = rhs with CG ---
-        double[] newCvec = conjugateGradient(rowPtr, colInd, values, rhs, 1e-8, 10000);
+        double[] newCvec = conjugateGradient(rowPtr, colInd, values, rhs);
 
         // --- Copy solution back into ArrayList ---
         for (int i = 0; i < N; i++) {
-            C.set(i, Double.valueOf(newCvec[i]));
+            C.set(i, newCvec[i]);
         }
     }
+
 
     /** Build CSR for matrix A = I - dt*D*L */
     private void buildSparseMatrix(double dt) {
         int N = nx * ny;
-        double dx = 1.0;
+        double dx = 1;
         double idx2 = 1.0 / (dx * dx);
-        double dy = 1.0;
+        double dy = 1;
         double idy2 = 1.0 / (dy * dy);
 
         rowPtr = new int[N + 1];
@@ -86,7 +92,7 @@ public class PDE {
 
                 double diag = 1.0;
 
-                double d = 1e-3;
+                double d = 1e-4;
                 if (i > 0) { // left
                     colInd[nnz] = (i - 1) * ny + j;
                     values[nnz++] = -dt * d * idx2;
@@ -121,14 +127,14 @@ public class PDE {
 
     /** Conjugate Gradient solver for symmetric positive definite A */
     private double[] conjugateGradient(int[] rowPtr, int[] colInd, double[] values,
-                                       double[] b, double tol, int maxIter) {
+                                       double[] b) {
         int N = b.length;
         double[] x = new double[N]; // initial guess = 0
         double[] r = Arrays.copyOf(b, N);
         double[] p = Arrays.copyOf(r, N);
         double rsold = dot(r, r);
 
-        for (int iter = 0; iter < maxIter; iter++) {
+        for (int iter = 0; iter < 10000; iter++) {
             double[] Ap = matVec(rowPtr, colInd, values, p);
             double alpha = rsold / dot(p, Ap);
 
@@ -138,7 +144,7 @@ public class PDE {
             }
 
             double rsnew = dot(r, r);
-            if (Math.sqrt(rsnew) < tol) break;
+            if (Math.sqrt(rsnew) < 1.0E-8) break;
 
             double beta = rsnew / rsold;
             for (int i = 0; i < N; i++) {
@@ -167,5 +173,32 @@ public class PDE {
         double sum = 0.0;
         for (int i = 0; i < a.length; i++) sum += a[i] * b[i];
         return sum;
+    }
+    //ONLY USED FOR UNIT TESTING
+    public static void main(String[] args) {
+        // Create a list of cells (empty for now, or add some dummy cells)
+        List<Cell> cell = new ArrayList<>();
+        cell.add(new Cell(Vector.ORIGIN, 0, EPS.l_ini));
+
+        // Initialize ConcentrationPDE with initial value 3.0
+        ConcentrationPDE concPDE = new ConcentrationPDE(10.0, cell);
+
+        // Print some sample concentrations before advancing timestep
+        System.out.println("Initial concentrations:");
+        System.out.println("Concentration at (0,0): " + concPDE.getConcentration(0.0, 0.0));
+        System.out.println("Concentration at (25,25): " + concPDE.getConcentration(25.0, 25.0));
+        System.out.println("Concentration at (49,49): " + concPDE.getConcentration(49.0, 49.0));
+
+        // Advance one timestep (e.g., dt = 0.1)
+        for (int i = 0; i < 100; i++) {
+            concPDE.advanceTimestep(1.0/30.0, cell);
+        }
+
+
+        // Print concentrations after timestep
+        System.out.println("\nConcentrations after timestep:");
+        System.out.println("Concentration at (0,0): " + concPDE.getConcentration(0.0, 0.0));
+        System.out.println("Concentration at (0.5,0.5): " + concPDE.getConcentration(0.5, 0.5));
+        System.out.println("Concentration at (49,49): " + concPDE.getConcentration(49.0, 49.0));
     }
 }
