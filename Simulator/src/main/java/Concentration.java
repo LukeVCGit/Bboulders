@@ -1,10 +1,10 @@
-import java.util.ArrayList;
 import java.util.List;
 
-public class ConcentrationPDE {
-    private final PDE solver;
-    public ConcentrationPDE(double initialValue, List<Cell> list) {
-        solver = new PDE(list);
+public class Concentration {
+    private final PDESolver solver;
+
+    public Concentration(double initialValue, List<Cell> list) {
+        solver = new PDESolver(list);
         solver.setInitialCondition(initialValue);
     }
 
@@ -21,7 +21,7 @@ public class ConcentrationPDE {
         iy = Math.max(0, Math.min(ny - 1, iy));
 
         int index = ix * ny + iy;
-        return solver.getConcentrationCopy().get(index);
+        return solver.getConcentration().get(index);
     }
 
     public void advanceTimestep(double dt, List<Cell> cell) {

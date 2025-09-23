@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class PDE {
+public class PDESolver {
     private final int nx = 50;
     private final int ny = 50;
 
@@ -12,7 +12,7 @@ public class PDE {
     // Sparse matrix (CSR for A = I - dt*D*L)
     private int[] rowPtr, colInd;
     private double[] values;
-    public PDE(List<Cell> cells) {
+    public PDESolver(List<Cell> cells) {
         this.cells = cells;
         this.C = new ArrayList<>(nx * ny);
         for (int i = 0; i < nx * ny; i++) {
@@ -29,8 +29,8 @@ public class PDE {
     }
 
     /** Return a deep copy of the concentration field */
-    public ArrayList<Double> getConcentrationCopy() {
-        return new ArrayList<>(C);
+    public ArrayList<Double> getConcentration() {
+        return C;
     }
 
     /** Advance one timestep using implicit scheme */
@@ -173,32 +173,5 @@ public class PDE {
         double sum = 0.0;
         for (int i = 0; i < a.length; i++) sum += a[i] * b[i];
         return sum;
-    }
-    //ONLY USED FOR UNIT TESTING
-    public static void main(String[] args) {
-        // Create a list of cells (empty for now, or add some dummy cells)
-        List<Cell> cell = new ArrayList<>();
-        cell.add(new Cell(Vector.ORIGIN, 0, EPS.l_ini));
-
-        // Initialize ConcentrationPDE with initial value 3.0
-        ConcentrationPDE concPDE = new ConcentrationPDE(10.0, cell);
-
-        // Print some sample concentrations before advancing timestep
-        System.out.println("Initial concentrations:");
-        System.out.println("Concentration at (0,0): " + concPDE.getConcentration(0.0, 0.0));
-        System.out.println("Concentration at (25,25): " + concPDE.getConcentration(25.0, 25.0));
-        System.out.println("Concentration at (49,49): " + concPDE.getConcentration(49.0, 49.0));
-
-        // Advance one timestep (e.g., dt = 0.1)
-        for (int i = 0; i < 100; i++) {
-            concPDE.advanceTimestep(1.0/30.0, cell);
-        }
-
-
-        // Print concentrations after timestep
-        System.out.println("\nConcentrations after timestep:");
-        System.out.println("Concentration at (0,0): " + concPDE.getConcentration(0.0, 0.0));
-        System.out.println("Concentration at (0.5,0.5): " + concPDE.getConcentration(0.5, 0.5));
-        System.out.println("Concentration at (49,49): " + concPDE.getConcentration(49.0, 49.0));
     }
 }

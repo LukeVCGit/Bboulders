@@ -19,6 +19,7 @@ public class TimeStep {
     private List<EPS> eps;
     private List<Cell> bacteria;
     private transient HashMap<Vector, List<EPS>> grid = new HashMap<>();
+    private static final Concentration CONC = new Concentration(3, new ArrayList<Cell>());
 
     public List<EPS> getEps() {
         return eps;
