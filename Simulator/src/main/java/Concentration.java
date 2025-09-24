@@ -3,8 +3,8 @@ import java.util.List;
 public class Concentration {
     private final PDESolver solver;
 
-    public Concentration(double initialValue, List<Cell> list) {
-        solver = new PDESolver(list);
+    public Concentration(double initialValue) {
+        solver = new PDESolver();
         solver.setInitialCondition(initialValue);
     }
 
@@ -24,7 +24,7 @@ public class Concentration {
         return solver.getConcentration().get(index);
     }
 
-    public void advanceTimestep(double dt, List<Cell> cell) {
-        solver.solveStep(dt);
+    public void advanceTimestep(double dt, List<Cell> cells) {
+        solver.solveStep(dt, cells);
     }
 }

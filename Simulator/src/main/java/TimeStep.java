@@ -19,7 +19,7 @@ public class TimeStep {
     private List<EPS> eps;
     private List<Cell> bacteria;
     private transient HashMap<Vector, List<EPS>> grid = new HashMap<>();
-    private static final Concentration CONC = new Concentration(3, new ArrayList<Cell>());
+    private static final Concentration CONC = new Concentration(3);
 
     public List<EPS> getEps() {
         return eps;
@@ -61,17 +61,20 @@ public class TimeStep {
     }
 
     public TimeStep next(double dt) {
+        CONC.advanceTimestep(dt, bacteria); //advance the pde timestep
+
         List<EPS> newEps = produceEPS(dt);
 
         var epsStream = eps.parallelStream().map(eps -> {
             var colliders = potentialColliders(eps);
-            return eps.tick(dt, colliders).getFirst(); //we can just get first since EPS.tick always returns a list of size 1.
+            return eps.tick(dt, colliders, 0).getFirst(); //we can just get first since EPS.tick always returns a list of size 1. C also doesn't matter for EPS particles
         });
         newEps.addAll(epsStream.toList());
 
         var newBactStream = bacteria.parallelStream().flatMap(cell -> {
             var colliders = potentialColliders(cell);
-            var newBact = (List<Cell>) (List<?>) cell.tick(dt, colliders);
+            double concentration = CONC.getConcentration(cell.position.x(), cell.position.y());
+            var newBact = (List<Cell>) (List<?>) cell.tick(dt, colliders, concentration);
             return newBact.stream();
         });
 
@@ -81,7 +84,7 @@ public class TimeStep {
     private List<EPS> produceEPS(double dt) {
         List<EPS> newEps = new ArrayList<>();
 
-        //loop through every grid points
+        //loop through every grid point
         for (var entry : grid.entrySet()) {
             //calculate the total cell area in each grid cell
             double cellAreaSum = 0;
@@ -110,7 +113,7 @@ public class TimeStep {
         return newEps;
     }
 
-    private List<EPS> potentialColliders(EPS particle) { //todo: optimise with grid
+    private List<EPS> potentialColliders(EPS particle) {
         List<EPS> potentialColliders = new ArrayList<>();
         double xPos = particle.position.x();
         double yPos = particle.position.y();

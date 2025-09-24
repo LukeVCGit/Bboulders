@@ -29,9 +29,9 @@ public class EPS {
         this.position = position;
     }
 
-    private Vector epsilon() { //todo make rng per thread
-        double mag = ThreadLocalRandom.current().nextDouble() * 2e-3 - 1e-3;
-        double ang = 2*Math.PI*ThreadLocalRandom.current().nextDouble();
+    private Vector epsilon() {
+        double mag = ThreadLocalRandom.current().nextDouble(-1e-3, 1e-3);
+        double ang = ThreadLocalRandom.current().nextDouble(0, 2*Math.PI);
         return Vector.fromMag(mag, ang);
     }
 
@@ -105,7 +105,7 @@ public class EPS {
                 .scale(1/(nu*L()));
     }
 
-    public List<EPS> tick(double dt, List<EPS> potentialColliders) {
+    public List<EPS> tick(double dt, List<EPS> potentialColliders, double C) {
         //update EPS position using forward euler
         Vector newPos = vel(potentialColliders).scale(dt).add(position);
         EPS copy = new EPS(newPos);

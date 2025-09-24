@@ -8,7 +8,7 @@ class PDESolverTest {
     @Test
     void testInitialConditionAtFloatingPointPositions() {
         List<Cell> cells = new ArrayList<>();
-        Concentration concPDE = new Concentration(2.5, cells);
+        Concentration concPDE = new Concentration(2.5);
 
         assertEquals(2.5, concPDE.getConcentration(0.0, 0.0), 1e-12);
         assertEquals(2.5, concPDE.getConcentration(25.3, 25.7), 1e-12); // maps to nearest grid
@@ -18,7 +18,7 @@ class PDESolverTest {
     @Test
     void testAdvanceTimestepDoesNotProduceNaN() {
         List<Cell> cells = new ArrayList<>();
-        Concentration concPDE = new Concentration(3.0, cells);
+        Concentration concPDE = new Concentration(3.0);
 
         concPDE.advanceTimestep(0.1, cells);
 
@@ -30,7 +30,7 @@ class PDESolverTest {
     @Test
     void testConcentrationChangesAfterStep() {
         List<Cell> cells = new ArrayList<>();
-        Concentration concPDE = new Concentration(3.0, cells);
+        Concentration concPDE = new Concentration(3.0);
 
         double before = concPDE.getConcentration(25.2, 25.8);
         concPDE.advanceTimestep(0.5, cells);

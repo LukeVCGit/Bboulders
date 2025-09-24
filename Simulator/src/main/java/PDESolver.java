@@ -5,15 +5,12 @@ import java.util.List;
 public class PDESolver {
     private final int nx = 50;
     private final int ny = 50;
-
-    private final List<Cell> cells;
     private final ArrayList<Double> C; // concentration field (flat list)
 
     // Sparse matrix (CSR for A = I - dt*D*L)
     private int[] rowPtr, colInd;
     private double[] values;
-    public PDESolver(List<Cell> cells) {
-        this.cells = cells;
+    public PDESolver() { //todo thoroughly check
         this.C = new ArrayList<>(nx * ny);
         for (int i = 0; i < nx * ny; i++) {
             C.add(0.0);
@@ -34,7 +31,7 @@ public class PDESolver {
     }
 
     /** Advance one timestep using implicit scheme */
-    public void solveStep(double dt) {
+    public void solveStep(double dt, List<Cell> cells) {
         int N = nx * ny;
 
         // --- RHS starts as old concentration (implicit Euler base) ---

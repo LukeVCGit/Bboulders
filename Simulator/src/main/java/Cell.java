@@ -3,7 +3,6 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Cell extends EPS {
-    protected static final double temp_C = 3; // todo implement PDE
     protected static final double DAUGHTER_ANGLE_RANGE = 20 * (Math.PI / 180);
 
     final double angle;
@@ -25,9 +24,9 @@ public class Cell extends EPS {
     }
 
     @Override
-    public List<EPS> tick(double dt, List<EPS> potentialColliders) {
+    public List<EPS> tick(double dt, List<EPS> potentialColliders, double C) {
         //update the quantities using forward euler
-        double newLength = length + dlength_dt()*dt;
+        double newLength = length + dlength_dt(C)*dt;
         Vector newPos = vel(potentialColliders).scale(dt).add(position);
         double newAngle = angle + angularVelocity()*dt;
 
@@ -63,8 +62,8 @@ public class Cell extends EPS {
         return r_0 * (Math.PI * r_0 + 2 * length);
     }
 
-    private double dlength_dt() {
-        return phi * area() * f(temp_C) / Abar;
+    private double dlength_dt(double C) {
+        return phi * area() * f(C) / Abar;
     }
 
     private double angularVelocity() {
@@ -73,10 +72,6 @@ public class Cell extends EPS {
 
     public static double f(double C) {
         return C / (1+C);
-    }
-
-    public Vector getPosition() {
-        return position;
     }
 
     @Override
