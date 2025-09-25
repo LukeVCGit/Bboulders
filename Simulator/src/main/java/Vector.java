@@ -142,4 +142,10 @@ public record Vector(double x, double y) {
 
         return new Vector(minT, minS);
     }
+
+    public Vector clamp(double maxX, double maxY) {
+        double x = Math.clamp(x(), 0, maxX);
+        double y = Math.clamp(y(), 0, maxY);
+        return new Vector(x, y);
+    }
 }

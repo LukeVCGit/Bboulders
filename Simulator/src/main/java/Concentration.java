@@ -9,8 +9,8 @@ public class Concentration {
     }
 
     public double getConcentration(double x, double y) {
-        int nx = 50; // match PDE grid size
-        int ny = 50;
+        int nx = PDESolver.nx; // match PDE grid size
+        int ny = PDESolver.ny;
 
         // Map floating-point coordinates to nearest grid index
         int ix = (int) Math.round(x);

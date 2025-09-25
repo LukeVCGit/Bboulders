@@ -18,6 +18,8 @@ public class EPS {
     protected static final double r_0 = d_0 * 0.5;
     protected static final double l_ini = 0.5 * l_c;
     protected static final double Abar = r_0 * (Math.PI * r_0 + 1.5 * l_c);
+    private static final double MAX_X = PDESolver.nx;
+    private static final double MAX_Y = PDESolver.ny;
 
     protected final Vector position;
 
@@ -26,7 +28,7 @@ public class EPS {
     }
 
     public EPS(Vector position) {
-        this.position = position;
+        this.position = position.clamp(MAX_X, MAX_Y);
     }
 
     private Vector epsilon() {

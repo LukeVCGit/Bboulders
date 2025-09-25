@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Simulation {
     public static void run(int fps, int secToRun) {
@@ -23,10 +24,13 @@ public class Simulation {
             f.delete();
         System.out.println("Cleared data directory");
 
+        PDESolver.nx = 50; //todo make a way to change
+        PDESolver.ny = 50;
         var eps = new ArrayList<EPS>();
-
         var cells = new ArrayList<Cell>();
-        cells.add(new Cell(Vector.ORIGIN, 0, EPS.l_ini));
+        double angle = ThreadLocalRandom.current().nextDouble(0, 2*Math.PI);
+        Cell initialCell = new Cell(new Vector (PDESolver.nx/2.0, PDESolver.ny/2.0), angle, EPS.l_ini);
+        cells.add(initialCell);
 
         TimeStep step = new TimeStep(eps, cells);
         System.out.println("Set up initial condition");
