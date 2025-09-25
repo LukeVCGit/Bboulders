@@ -13,6 +13,7 @@ OUTPUT_VIDEO = 'video_gpu.mp4'
 FPS = 30
 FRAME_SIZE = (1024, 1024)
 BACTERIA_WIDTH = 1.0 
+VISUAL_SCALE_BUFFER = 1.2  # Extra space around edges
 
 # Vertex Shader positions each corner of base shape
 # Now we pass shape type to fragment shader for proper rendering
@@ -134,6 +135,131 @@ FRAGMENT_SHADER = """
     }
 """
 
+
+    # Calculate the visual scale by examining all data files to find the maximum extent.
+    # Returns the scale needed to fit all data in the [-1, 1] coordinate space.
+def calculate_visual_scale(data_dir, buffer_factor=1.2):
+    
+    files = sorted(glob.glob(os.path.join(data_dir, "*.boulder")))
+    if not files:
+        print(f"No MessagePack (.boulder) files found in '{data_dir}'.")
+        return 20.0  # Default
+    
+    print(f"Analyzing {len(files)} files to determine optimal visual scale...")
+    
+    all_x_coords = []
+    all_y_coords = []
+    
+    # Sample files to determine extent - you could analyze all files or just sample
+    # For large datasets, you might want to sample every Nth file for speed
+    sample_files = files[::max(1, len(files)//20)]  # Sample up to 20 files
+    
+    for filename in sample_files:
+        try:
+            with open(filename, "rb") as f:
+                data = msgpack.load(f, raw=False)
+            
+            # Collect bacteria positions and account for their length
+            for b in data.get('bacteria', []):
+                x = b['position']['x']
+                y = b['position']['y']
+                length = b['length']
+                angle = b['angle']
+                
+                # Calculate the extents of the bacteria considering its length and orientation
+                half_length = length / 2
+                dx = half_length * np.cos(angle)
+                dy = half_length * np.sin(angle)
+                
+                # Add both ends of the bacteria
+                all_x_coords.extend([x + dx, x - dx])
+                all_y_coords.extend([y + dy, y - dy])
+            
+            # Collect EPS positions (assuming they have radius 0.25)
+            for e in data.get('eps', []):
+                x = e['position']['x']
+                y = e['position']['y']
+                radius = 0.25  # EPS radius
+                
+                # Add extents of the EPS circle
+                all_x_coords.extend([x + radius, x - radius])
+                all_y_coords.extend([y + radius, y - radius])
+                
+        except Exception as e:
+            print(f"Warning: Could not read {filename}: {e}")
+            continue
+    
+    if not all_x_coords or not all_y_coords:
+        print("Warning: No valid data found, using default scale")
+        return 20.0
+    
+    # Find the maximum extent in both dimensions
+    min_x, max_x = min(all_x_coords), max(all_x_coords)
+    min_y, max_y = min(all_y_coords), max(all_y_coords)
+    
+    # Calculate the range in each dimension
+    x_range = max_x - min_x
+    y_range = max_y - min_y
+    
+    # The visual scale should be half of the maximum range (since we map to [-1, 1])
+    # We take the larger of the two ranges and add the buffer
+    max_range = max(x_range, y_range)
+    visual_scale = (max_range * buffer_factor) / 2.0
+    
+    print(f"Data extent: X=[{min_x:.2f}, {max_x:.2f}], Y=[{min_y:.2f}, {max_y:.2f}]")
+    print(f"Max range: {max_range:.2f}, Visual scale: {visual_scale:.2f}")
+    
+    return visual_scale
+
+
+def bacteria_data(b, bacteria_width,  visual_scale):
+# Normalize simulation coordinates from sISUALISATION_SCALE to GPU screen space (-1, 1).
+    pos_x = b['position']['x'] /visual_scale
+    pos_y = b['position']['y'] /visual_scale
+    size_x = b['length'] /visual_scale
+    size_y = bacteria_width /visual_scale
+    angle = b['angle']
+    color = (0.2, 0.5, 1.0) # Blueish
+    shape = 0.0  # Capsule shape for bacteria
+    return [pos_x, pos_y, size_x, size_y, angle, *color, shape]
+
+def eps_data(e, visual_scale):
+    pos_x = e['position']['x'] /visual_scale
+    pos_y = e['position']['y'] /visual_scale
+    size_x = 0.5 /visual_scale # diameter 0.5
+    size_y = 0.5 /visual_scale
+    angle = 0.0
+    color = (1.0, 0.2, 0.2) # Red
+    shape = 1.0  # Circle shape for EPS
+    return [pos_x, pos_y, size_x, size_y, angle, *color, shape]
+
+
+# Estimate the maximum number of instances across all files to reserve appropriate buffer size.
+def estimate_max_instances(data_dir):
+    
+    files = sorted(glob.glob(os.path.join(data_dir, "*.boulder")))
+    if not files:
+        return 1000  # fallback
+    
+    max_instances = 0
+    # Sample files to estimate maximum instance count
+    sample_files = files[::max(1, len(files)//10)]  # Sample every 10th file
+    
+    for filename in sample_files:
+        try:
+            with open(filename, "rb") as f:
+                data = msgpack.load(f, raw=False)
+            
+            instance_count = len(data.get('bacteria', [])) + len(data.get('eps', []))
+            max_instances = max(max_instances, instance_count)
+            
+        except Exception as e:
+            continue
+    
+    # Add 50% buffer to the estimated maximum
+    return int(max_instances * 1.5)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Biofilm simulation video generator")
     parser.add_argument("--data_dir", default=DATA_DIRECTORY,
@@ -150,6 +276,14 @@ def main():
     if not os.path.exists(data_dir):
         print(f"ERROR: Data directory '{data_dir}' not found!")
         return
+    
+    # Calculate the optimal visual scale
+    visual_scale = calculate_visual_scale(data_dir, VISUAL_SCALE_BUFFER)
+    print(f"Using visual scale: {visual_scale}")
+
+    # Estimate maximum instances for buffer reservation
+    max_instances = estimate_max_instances(data_dir)
+    print(f"Estimated max instances: {max_instances}")
 
     # --- 1. GPU CONTEXT AND SHADER SETUP (DONE ONCE) ---
     # Create a "standalone" or "headless" ModernGL context because we don't need to display a window.
@@ -179,7 +313,7 @@ def main():
     # Create another VBO for the per-instance data. We 'reserve' a large amount of memory
     # on the GPU for this buffer. We will overwrite its contents each frame.
     # Reserving helps avoid re-allocating memory every frame, which is slow.
-    vbo_per_instance = ctx.buffer(reserve=100000 * 9 * 4) # Reserve space for per-instance data (9 floats per instance: pos, size, angle, color, shape)
+    vbo_per_instance = ctx.buffer(reserve=max_instances * 9 * 4) # Reserve space for per-instance data (9 floats per instance: pos, size, angle, color, shape)
 
     #################### make the above dynamic based on number of objects in data file
 
@@ -207,7 +341,7 @@ def main():
     # --- 4. MAIN RENDERING LOOP ---
     files = sorted(glob.glob(os.path.join(data_dir, "*.boulder")))
     if not files:
-        print(f"No MessagePack files found in '{data_dir}'.")
+        print(f"No MessagePack (.boulder) files found in '{data_dir}'.")
         return
         
     print(f"Found {len(files)} frames. Starting GPU rendering...")
@@ -225,26 +359,12 @@ def main():
         
         # Add bacteria data
         for b in data.get('bacteria', []):
-            # Normalize simulation coordinates from (-10, 10) to GPU screen space (-1, 1).
-            pos_x = b['position']['x'] / 10.0
-            pos_y = b['position']['y'] / 10.0
-            size_x = b['length'] / 10.0
-            size_y = BACTERIA_WIDTH / 10.0
-            angle = b['angle']
-            color = (0.2, 0.5, 1.0) # Blueish
-            shape = 0.0  # Capsule shape for bacteria
-            instance_data.extend([pos_x, pos_y, size_x, size_y, angle, *color, shape])
+            instance_data.extend(bacteria_data(b, BACTERIA_WIDTH, visual_scale))
 
         # Add EPS data 
         for e in data.get('eps', []):
-            pos_x = e['position']['x'] / 10.0
-            pos_y = e['position']['y'] / 10.0
-            size_x = 0.5 / 10.0 # diameter 0.5
-            size_y = 0.5 / 10.0
-            angle = 0.0
-            color = (1.0, 0.2, 0.2) # Red
-            shape = 1.0  # Circle shape for EPS
-            instance_data.extend([pos_x, pos_y, size_x, size_y, angle, *color, shape])
+            instance_data.extend(eps_data(e, visual_scale))
+
         
         if not instance_data: # Skip empty frames
             # Create a blank frame to keep video timing consistent
