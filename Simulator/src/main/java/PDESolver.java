@@ -3,8 +3,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class PDESolver {
-    static int nx;
-    static int ny;
+    static int nx = 200;
+    static int ny = 200;
     private final ArrayList<Double> C; // concentration field (flat list)
 
     // Sparse matrix (CSR for A = I - dt*D*L)

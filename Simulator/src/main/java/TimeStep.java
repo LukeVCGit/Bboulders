@@ -105,8 +105,12 @@ public class TimeStep {
                 if (rand > prob) //division doesn't occur
                     continue;
 
+                //place the EPS randomly within the grid
                 Vector gridCellCentre = entry.getKey().scale(GRID_WIDTH);
-                newEps.add(new EPS(gridCellCentre));
+                double xOffset = ThreadLocalRandom.current().nextDouble(-GRID_WIDTH / 2, GRID_WIDTH / 2);
+                double yOffset = ThreadLocalRandom.current().nextDouble(-GRID_WIDTH / 2, GRID_WIDTH / 2);
+                Vector epsPos = new Vector(xOffset, yOffset).add(gridCellCentre);
+                newEps.add(new EPS(epsPos));
             }
         }
 
