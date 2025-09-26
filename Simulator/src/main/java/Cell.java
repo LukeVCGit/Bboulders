@@ -67,7 +67,7 @@ public class Cell extends EPS {
     }
 
     private double angularVelocity() {
-        return torque*12/(nu * Math.pow(L(), 3));
+        return torque/(nu * Math.pow(L(), 3));
     }
 
     public static double f(double C) {
