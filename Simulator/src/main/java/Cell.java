@@ -28,7 +28,8 @@ public class Cell extends EPS {
         //update the quantities using forward euler
         double newLength = length + dlength_dt(C)*dt;
         Vector newPos = vel(potentialColliders).scale(dt).add(position);
-        double newAngle = angle + angularVelocity()*dt;
+        double angVel = Math.clamp(angularVelocity(), -1, 1);
+        double newAngle = angle + angVel*dt;
 
         List<EPS> cells = new ArrayList<EPS>(2);
 
