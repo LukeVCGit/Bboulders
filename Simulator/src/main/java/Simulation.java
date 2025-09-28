@@ -2,8 +2,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
@@ -14,16 +16,23 @@ public class Simulation {
     public static void run(int secToRun, int simSize, double motility) {
         //get python script path
         var res = Simulation.class.getResource("VisWithModernGL.py");
-        String visPath = res.getPath().substring(1).replace("%20", " ");
+        Path visPath = Paths.get(System.getProperty("user.dir")).resolve("VisWithModernGL.py");
+
+        //copy script to temporary file
+        try {
+            Files.copy(res.openStream(), visPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         //create simulation data dir
-        var simulationDataDir = Paths.get(visPath).getParent().resolve("simulation_data");
+        var simulationDataDir = visPath.getParent().resolve("simulation_data");
         simulationDataDir.toFile().mkdirs();
 
         //delete old simulation files
         for (File f : Objects.requireNonNull(simulationDataDir.toFile().listFiles()))
             f.delete();
-        System.out.println("Cleared data directory");
+        System.out.println("Setup data directory");
 
         PDESolver.nx = simSize;
         PDESolver.ny = simSize;
@@ -59,7 +68,7 @@ public class Simulation {
         System.out.println("Data saved");
 
         // Command and arguments as a list
-        ProcessBuilder pb = new ProcessBuilder("python", "-u", visPath);
+        ProcessBuilder pb = new ProcessBuilder("python", "-u", visPath.toString());
         pb.redirectErrorStream(true); // merge stdout + stderr
 
         Process process = null;
@@ -78,5 +87,8 @@ public class Simulation {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        //delete temporary python file
+        visPath.toFile().delete();
     }
 }
