@@ -3,30 +3,30 @@ import java.util.Arrays;
 import java.util.List;
 
 public class PDESolver {
-    static int nx = 200;
-    static int ny = 200;
-    private final ArrayList<Double> C; // concentration field (flat list)
+    public final int nx;
+    public final int ny;
+
+    private final double[] C;
 
     // Sparse matrix (CSR for A = I - dt*D*L)
     private int[] rowPtr, colInd;
     private double[] values;
-    public PDESolver() {
-        this.C = new ArrayList<>(nx * ny);
-        for (int i = 0; i < nx * ny; i++) {
-            C.add(0.0);
-        }
 
+    public PDESolver(int nx, int ny) {
+        C = new double[nx*ny];
+        this.nx = nx;
+        this.ny = ny;
     }
 
     /** Set uniform initial condition */
     public void setInitialCondition(double value) {
-        for (int i = 0; i < C.size(); i++) {
-            C.set(i, value);
+        for (int i = 0; i < C.length; i++) {
+            C[i] = value;
         }
     }
 
-    /** Return a deep copy of the concentration field */
-    public ArrayList<Double> getConcentration() {
+    /** Return the concentration field */
+    public double[] getConcentration() {
         return C;
     }
 
@@ -37,7 +37,7 @@ public class PDESolver {
         // --- RHS starts as old concentration (implicit Euler base) ---
         double[] rhs = new double[N];
         for (int idx = 0; idx < N; idx++) {
-            rhs[idx] = C.get(idx);
+            rhs[idx] = C[idx];
         }
 
         // --- Apply local sinks ---
@@ -49,7 +49,7 @@ public class PDESolver {
             int j = (int) Math.round(cell.position.y());
             if (i >= 0 && i < nx && j >= 0 && j < ny) {
                 int idx = i * ny + j;
-                double conc = C.get(idx);
+                double conc = C[idx];
                 rhs[idx] -= dt * k * cell.area() * Cell.f(conc);
             }
         }
@@ -60,10 +60,8 @@ public class PDESolver {
         // --- Solve A x = rhs with CG ---
         double[] newCvec = conjugateGradient(rowPtr, colInd, values, rhs);
 
-        // --- Copy solution back into ArrayList ---
-        for (int i = 0; i < N; i++) {
-            C.set(i, newCvec[i]);
-        }
+        // --- Copy solution back into C
+        System.arraycopy(newCvec, 0, C, 0, N);
     }
 
 

@@ -19,7 +19,7 @@ public class TimeStep {
     private List<EPS> eps;
     private List<Cell> bacteria;
     private transient HashMap<Vector, List<EPS>> grid = new HashMap<>();
-    private static final Concentration CONC = new Concentration(3);
+    public static Concentration CONC;
 
     public List<EPS> getEps() {
         return eps;
@@ -122,6 +122,7 @@ public class TimeStep {
         double xPos = particle.position.x();
         double yPos = particle.position.y();
 
+        // add all particles from all adjacent cells to list of potential colliders
         for (double x = xPos- GRID_WIDTH; x <= xPos + GRID_WIDTH + 1e-3; x += GRID_WIDTH) {
             for (double y = yPos- GRID_WIDTH; y <= yPos + GRID_WIDTH + 1e-3; y += GRID_WIDTH) {
                 potentialColliders.addAll(getParticlesAtPosition(new Vector(x,y)));
@@ -131,6 +132,7 @@ public class TimeStep {
         return potentialColliders;
     }
 
+    //saves the current timestep to a file
     private void save(Path dir, int i) {
         Path destFile = dir.resolve(String.format("%05d.boulder", i));
         try {
@@ -141,12 +143,13 @@ public class TimeStep {
         }
     }
 
+    //save the current timestep asynchronously
     public void startSaveAsync(Path dir, int i) {
         var ioTask = ioExecutor.submit(() -> save(dir, i));
         ioTasks.add(ioTask);
     }
 
-    public static void saveFrames() {
+    public static void saveFrames() { //wait for all io tasks to complete
         for (var task : ioTasks) {
             try {
                 task.get();

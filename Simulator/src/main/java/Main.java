@@ -6,7 +6,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class Main { //todo add comments
+public class Main {
     public static void main(String[] args) {
         if (args.length != 3) {
             System.out.println("Incorrect number of arguments, instead use <secToRunFor> <simSize> <motility>");

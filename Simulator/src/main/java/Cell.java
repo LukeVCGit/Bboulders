@@ -26,14 +26,14 @@ public class Cell extends EPS {
     @Override
     public List<EPS> tick(double dt, List<EPS> potentialColliders, double C) {
         //update the quantities using forward euler
-        double newLength = length + dlength_dt(C)*dt;
+        double newLength = length + lengthDerivative(C)*dt;
         Vector newPos = vel(potentialColliders).scale(dt).add(position);
         double angVel = Math.clamp(angularVelocity(), -1, 1);
         double newAngle = angle + angVel*dt;
 
         List<EPS> cells = new ArrayList<EPS>(2);
 
-        if (newLength >= l_c) { //split condition
+        if (newLength >= CRITICAL_LENGTH) { //split condition to create daughter cell
             Vector daughterPos = Vector.fromMag(newLength*0.25 + 0.5*r_0, newAngle).add(newPos);
             double daughterAngle = newAngle + (ThreadLocalRandom.current().nextDouble() -0.5) * DAUGHTER_ANGLE_RANGE;
             cells.add(new Cell(daughterPos,  daughterAngle, (newLength-d_0)*0.5));
@@ -49,12 +49,12 @@ public class Cell extends EPS {
     }
 
     @Override
-    protected double L() {
+    protected double totalLength() {
         return d_0 + length;
     }
 
     @Override
-    protected Vector F_mf() {
+    protected Vector motilityForce() {
         return Vector.fromMag(motility, angle);
     }
 
@@ -63,12 +63,12 @@ public class Cell extends EPS {
         return r_0 * (Math.PI * r_0 + 2 * length);
     }
 
-    private double dlength_dt(double C) {
+    private double lengthDerivative(double C) {
         return phi * area() * f(C) / Abar;
     }
 
     private double angularVelocity() {
-        return torque/(nu * Math.pow(L(), 3));
+        return torque/(nu * Math.pow(totalLength(), 3));
     }
 
     public static double f(double C) {

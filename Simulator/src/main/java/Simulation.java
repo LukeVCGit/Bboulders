@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Simulation {
     private static final int FPS = 30;
+    public static int SIM_SIZE = 1;
 
     public static void run(int secToRun, int simSize, double motility) {
         //get python script path
@@ -34,24 +35,24 @@ public class Simulation {
             f.delete();
         System.out.println("Setup data directory");
 
-        PDESolver.nx = simSize;
-        PDESolver.ny = simSize;
         EPS.motility = motility;
+        SIM_SIZE = simSize;
 
         System.out.println("Starting simulation");
         long simStartTime = System.nanoTime();
         var eps = new ArrayList<EPS>();
         var cells = new ArrayList<Cell>();
         double angle = ThreadLocalRandom.current().nextDouble(0, 2*Math.PI);
-        Cell initialCell = new Cell(new Vector (PDESolver.nx/2.0, PDESolver.ny/2.0), angle, EPS.l_ini);
+        Cell initialCell = new Cell(new Vector (SIM_SIZE/2.0, SIM_SIZE/2.0), angle, EPS.l_ini);
         cells.add(initialCell);
 
+        TimeStep.CONC = new Concentration(3, SIM_SIZE, SIM_SIZE);
         TimeStep step = new TimeStep(eps, cells);
         System.out.println("Set up initial condition");
 
         double dt = 1.0/FPS;
         int totalSteps = secToRun*FPS;
-        for (int i = 0; i < totalSteps; i++) {
+        for (int i = 0; i < totalSteps; i++) { //iterate timesteps
             step.startSaveAsync(simulationDataDir, i);
             step = step.next(dt);
 
