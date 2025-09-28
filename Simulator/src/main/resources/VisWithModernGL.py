@@ -145,8 +145,6 @@ def calculate_visual_scale(data_dir, buffer_factor=1.2):
         print(f"No MessagePack (.boulder) files found in '{data_dir}'.")
         return 20.0, (0.0, 0.0)  # Default
     
-    print(f"Analyzing {len(files)} files to determine optimal visual scale...")
-    
     all_x_coords = []
     all_y_coords = []
     
@@ -191,7 +189,7 @@ def calculate_visual_scale(data_dir, buffer_factor=1.2):
     
     if not all_x_coords or not all_y_coords:
         print("Warning: No valid data found, using default scale")
-        return 20.0
+        return 20.0, (0.0, 0.0)
 
     
     # Find the maximum extent in both dimensions
@@ -211,9 +209,6 @@ def calculate_visual_scale(data_dir, buffer_factor=1.2):
     # We take the larger of the two ranges and add the buffer
     max_range = max(x_range, y_range)
     visual_scale = (max_range * buffer_factor) / 2.0
-    
-    print(f"Data extent: X=[{min_x:.2f}, {max_x:.2f}], Y=[{min_y:.2f}, {max_y:.2f}]")
-    print(f"Max range: {max_range:.2f}, Visual scale: {visual_scale:.2f}")
     
     return visual_scale, world_center
 
@@ -279,13 +274,13 @@ def estimate_max_instances(data_dir):
     return int(max_instances * 1.5)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Biofilm simulation video generator")
-    parser.add_argument("--data_dir", default=DATA_DIRECTORY,
-                        help="Directory containing simulation MessagePack files")
-    parser.add_argument("--output", default=OUTPUT_VIDEO,
-                        help="Output video filename")
-    args = parser.parse_args()
+def main(args):
+    #parser = argparse.ArgumentParser(description="Biofilm simulation video generator")
+    #parser.add_argument("--data_dir", default=DATA_DIRECTORY,
+                        #help="Directory containing simulation MessagePack files")
+    #parser.add_argument("--output", default=OUTPUT_VIDEO,
+                        #help="Output video filename")
+    #args = parser.parse_args()
 
     # Resolve paths relative to the script's location
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -298,11 +293,9 @@ def main():
     
     # Calculate the optimal visual scale
     visual_scale, world_center = calculate_visual_scale(data_dir, VISUAL_SCALE_BUFFER)
-    print(f"Using visual scale: {visual_scale}")
 
     # Estimate maximum instances for buffer reservation
     max_instances = estimate_max_instances(data_dir)
-    print(f"Estimated max instances: {max_instances}")
 
     # --- 1. GPU CONTEXT AND SHADER SETUP (DONE ONCE) ---
     # Create a "standalone" or "headless" ModernGL context because we don't need to display a window.
@@ -415,18 +408,10 @@ def main():
             # FBOs are often rendered upside-down, so we flip it.
             image = image.transpose(Image.FLIP_TOP_BOTTOM)
             
-
-            #potentially dont need this below
-
-
-            
             # Convert to a 3-channel (RGB) NumPy array for imageio.
             frame_array = np.array(image)
             #clips values to valid range and converts to uint8
             frame_array = np.clip(frame_array, 0, 255).astype(np.uint8)
-
-            # Debug: Print min, max, mean of the frame array to ensure valid values
-        #print(i, frame_array.min(), frame_array.max(), frame_array.mean())
 
         writer.append_data(frame_array)
     
@@ -434,6 +419,15 @@ def main():
     writer.close()
     print(f"GPU-rendered video saved as {output_file}")
 
+    print(f"Simulation and visualization complete.")
+
+
+def run():
+    parser = argparse.ArgumentParser(description="Biofilm simulation video generator")
+    parser.add_argument("--data_dir", default=DATA_DIRECTORY, help="Directory containing simulation MessagePack files")
+    parser.add_argument("--output", default=OUTPUT_VIDEO, help="Output video filename")
+    args = parser.parse_args()
+    main(args)
 
 if __name__ == "__main__":
-    main()
+    run()
