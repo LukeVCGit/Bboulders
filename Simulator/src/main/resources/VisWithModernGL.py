@@ -143,7 +143,7 @@ def calculate_visual_scale(data_dir, buffer_factor=1.2):
     files = sorted(glob.glob(os.path.join(data_dir, "*.boulder")))
     if not files:
         print(f"No MessagePack (.boulder) files found in '{data_dir}'.")
-        return 20.0  # Default
+        return 20.0, (0.0, 0.0)  # Default
     
     print(f"Analyzing {len(files)} files to determine optimal visual scale...")
     
@@ -192,10 +192,16 @@ def calculate_visual_scale(data_dir, buffer_factor=1.2):
     if not all_x_coords or not all_y_coords:
         print("Warning: No valid data found, using default scale")
         return 20.0
+
     
     # Find the maximum extent in both dimensions
     min_x, max_x = min(all_x_coords), max(all_x_coords)
     min_y, max_y = min(all_y_coords), max(all_y_coords)
+
+     # Calculate the center of the bounding box
+    center_x = (min_x + max_x) / 2.0
+    center_y = (min_y + max_y) / 2.0
+    world_center = (center_x, center_y)
     
     # Calculate the range in each dimension
     x_range = max_x - min_x
@@ -209,13 +215,20 @@ def calculate_visual_scale(data_dir, buffer_factor=1.2):
     print(f"Data extent: X=[{min_x:.2f}, {max_x:.2f}], Y=[{min_y:.2f}, {max_y:.2f}]")
     print(f"Max range: {max_range:.2f}, Visual scale: {visual_scale:.2f}")
     
-    return visual_scale
+    return visual_scale, world_center
 
 
-def bacteria_data(b, bacteria_width,  visual_scale):
+def bacteria_data(b, bacteria_width,  visual_scale, world_center):
 # Normalize simulation coordinates from sISUALISATION_SCALE to GPU screen space (-1, 1).
-    pos_x = b['position']['x'] /visual_scale
-    pos_y = b['position']['y'] /visual_scale
+
+    #Translate by subtracting the world center
+    translated_x = b['position']['x'] - world_center[0]
+    translated_y = b['position']['y'] - world_center[1]
+
+    # Scale the translated coordinates
+    pos_x = translated_x / visual_scale
+    pos_y = translated_y / visual_scale
+
     size_x = b['length'] /visual_scale
     size_y = bacteria_width /visual_scale
     angle = b['angle']
@@ -223,9 +236,15 @@ def bacteria_data(b, bacteria_width,  visual_scale):
     shape = 0.0  # Capsule shape for bacteria
     return [pos_x, pos_y, size_x, size_y, angle, *color, shape]
 
-def eps_data(e, visual_scale):
-    pos_x = e['position']['x'] /visual_scale
-    pos_y = e['position']['y'] /visual_scale
+def eps_data(e, visual_scale, world_center):
+
+    #Translate
+    translated_x = e['position']['x'] - world_center[0]
+    translated_y = e['position']['y'] - world_center[1]
+    # Scale
+    pos_x = translated_x / visual_scale
+    pos_y = translated_y / visual_scale
+
     size_x = 0.5 /visual_scale # diameter 0.5
     size_y = 0.5 /visual_scale
     angle = 0.0
@@ -278,7 +297,7 @@ def main():
         return
     
     # Calculate the optimal visual scale
-    visual_scale = calculate_visual_scale(data_dir, VISUAL_SCALE_BUFFER)
+    visual_scale, world_center = calculate_visual_scale(data_dir, VISUAL_SCALE_BUFFER)
     print(f"Using visual scale: {visual_scale}")
 
     # Estimate maximum instances for buffer reservation
@@ -349,7 +368,10 @@ def main():
     writer = imageio.get_writer(output_file, fps=FPS, codec='libx264', bitrate='5000k') # Set a reasonable quality
 
     for i, filename in enumerate(files):
-        print(f"\rProcessing frame {i+1}/{len(files)}", end="")
+        #prints only everry 100 frames or last frame 
+        if (i + 1) % 100 == 0 or (i + 1) == len(files):
+            print(f"\rProcessing frame {i+1}/{len(files)}", end="")
+
         with open(filename, "rb") as f:
             data = msgpack.load(f, raw=False)
 
@@ -359,11 +381,11 @@ def main():
         
         # Add bacteria data
         for b in data.get('bacteria', []):
-            instance_data.extend(bacteria_data(b, BACTERIA_WIDTH, visual_scale))
+            instance_data.extend(bacteria_data(b, BACTERIA_WIDTH, visual_scale, world_center))
 
         # Add EPS data 
         for e in data.get('eps', []):
-            instance_data.extend(eps_data(e, visual_scale))
+            instance_data.extend(eps_data(e, visual_scale, world_center))
 
         
         if not instance_data: # Skip empty frames
@@ -392,6 +414,11 @@ def main():
             image = Image.frombytes('RGB', fbo.size, image_buffer)
             # FBOs are often rendered upside-down, so we flip it.
             image = image.transpose(Image.FLIP_TOP_BOTTOM)
+            
+
+            #potentially dont need this below
+
+
             
             # Convert to a 3-channel (RGB) NumPy array for imageio.
             frame_array = np.array(image)
