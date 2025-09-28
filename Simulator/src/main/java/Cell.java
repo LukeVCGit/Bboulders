@@ -72,7 +72,7 @@ public class Cell extends EPS {
     }
 
     public static double f(double C) {
-        return C / (1+C);
+        return (C > 0) ? (C / (1+C)) : 0;
     }
 
     @Override
