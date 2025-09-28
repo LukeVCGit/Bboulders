@@ -101,7 +101,6 @@ public class Cell extends EPS {
         //compute the component of the force in the direction of the cell's axis
         Vector forceAlongAxis = cellDir.scale(force.dot(cellDir));
 
-        //todo check correct
         //calculate torque on cell
         torque += closestPoint.cross(force);
 

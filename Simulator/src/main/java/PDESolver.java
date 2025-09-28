@@ -10,7 +10,7 @@ public class PDESolver {
     // Sparse matrix (CSR for A = I - dt*D*L)
     private int[] rowPtr, colInd;
     private double[] values;
-    public PDESolver() { //todo thoroughly check
+    public PDESolver() {
         this.C = new ArrayList<>(nx * ny);
         for (int i = 0; i < nx * ny; i++) {
             C.add(0.0);

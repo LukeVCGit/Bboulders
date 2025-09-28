@@ -7,7 +7,7 @@ public class EPS {
     //constants
     protected static final double d_0 = 1;
     protected static final double l_c = 5;
-    protected static final double motility = 700;
+    public static double motility = 300;
     protected static final double phi = 3.5;
     protected static final double nu = 200;
     protected static final double E = 3e3; //1e3 works nicely
