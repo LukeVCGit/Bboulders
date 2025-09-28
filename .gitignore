@@ -35,3 +35,5 @@ simulation_data/00005.msgpack
 Simulator/src/main/resources/simulation_data/00004.msgpack
 Simulator/src/main/resources/simulation_data/00005.msgpack
 *.boulder
+Simulator/out/artifacts/Simulator_jar/VisWithModernGL.py
+Simulator/VisWithModernGL.py

@@ -37,6 +37,7 @@ public record Vector(double x, double y) {
         return new Vector(x / size, y / size);
     }
 
+    //calculates the t value such that ||p+t*d-point||^2 is minimised
     public static double closestTtoPoint(Vector p, Vector d, Vector point) {
         Vector w = point.subtract(p);
         double denom = d.dot(d);

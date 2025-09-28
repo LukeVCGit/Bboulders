@@ -1,25 +1,22 @@
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class EPS {
     //constants
     protected static final double d_0 = 1;
-    protected static final double l_c = 5;
-    protected static final double motility = 700;
+    protected static final double CRITICAL_LENGTH = 5;
+    public static double motility = 300;
     protected static final double phi = 3.5;
     protected static final double nu = 200;
     protected static final double E = 3e3; //1e3 works nicely
 
     // derived constants
     public static final double d_eps = 0.5 * d_0;
-    public static final double L_MAX = l_c + d_0;
+    public static final double L_MAX = CRITICAL_LENGTH + d_0;
     protected static final double r_0 = d_0 * 0.5;
-    protected static final double l_ini = 0.5 * l_c;
-    protected static final double Abar = r_0 * (Math.PI * r_0 + 1.5 * l_c);
-    private static final double MAX_X = PDESolver.nx;
-    private static final double MAX_Y = PDESolver.ny;
+    protected static final double l_ini = 0.5 * CRITICAL_LENGTH;
+    protected static final double Abar = r_0 * (Math.PI * r_0 + 1.5 * CRITICAL_LENGTH);
 
     protected final Vector position;
 
@@ -28,20 +25,20 @@ public class EPS {
     }
 
     public EPS(Vector position) {
-        this.position = position.clamp(MAX_X, MAX_Y);
+        this.position = position.clamp(Simulation.SIM_SIZE, Simulation.SIM_SIZE);
     }
 
-    private Vector epsilon() {
+    private Vector randomForce() { //random force due to brownian motion
         double mag = ThreadLocalRandom.current().nextDouble(-1e-3, 1e-3);
         double ang = ThreadLocalRandom.current().nextDouble(0, 2*Math.PI);
         return Vector.fromMag(mag, ang);
     }
 
-    protected double L() {
+    protected double totalLength() {
         return d_eps;
     }
 
-    private Vector F_rf(List<EPS> potentialColliders) {
+    private Vector repulsiveForce(List<EPS> potentialColliders) {
         Vector sum = Vector.ORIGIN;
 
         for (EPS col : potentialColliders) {
@@ -63,7 +60,7 @@ public class EPS {
         Vector disp = position.subtract(col.position);
         double dist = disp.mag();
 
-        if (dist > L()) //if the two eps particles are not close enough
+        if (dist > totalLength()) //if the two eps particles are not close enough
             return Vector.ORIGIN;
 
         double h = d_eps - dist; //overlap between the two eps
@@ -96,15 +93,15 @@ public class EPS {
         return disp.unitize().scale(forceMag);
     }
 
-    protected Vector F_mf() { //no motility force
+    protected Vector motilityForce() { //no motility force
         return Vector.ORIGIN;
     }
 
     protected final Vector vel(List<EPS> potentialColliders) {
-        return F_mf()
-                .add(epsilon())
-                .add(F_rf(potentialColliders))
-                .scale(1/(nu*L()));
+        return motilityForce()
+                .add(randomForce())
+                .add(repulsiveForce(potentialColliders))
+                .scale(1/(nu* totalLength()));
     }
 
     public List<EPS> tick(double dt, List<EPS> potentialColliders, double C) {
